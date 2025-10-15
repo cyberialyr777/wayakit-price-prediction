@@ -1,0 +1,59 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# CSV and analysis files
+*.csv
+
+# Environment files
+.env
+*.env
+
+# VS Code settings
+.vscode/
+
+# Anaconda environment folders
+.conda/
+
+# Windows specific files
+Thumbs.db
+Desktop.ini
+
+# MacOS specific files
+.DS_Store
+
+# Logs
+*.log
+
+# Test results
+*.pytest_cache/
+
+# Ignore virtual environments
+venv/
+env/
+
+# Ignore package management
+pip-wheel-metadata/
+__pypackages__/
+
+# Ignore scrapers cache
+scrapers/__pycache__/
+
+# Ignore analysis notebook outputs
+anaylsis.ipynb
+
+# Default ignored files
+/shelf/
+/workspace.xml
+# Editor-based HTTP Client requests
+/httpRequests/
+# Datasource local storage ignored files
+/dataSources/
+/dataSources.local.xml

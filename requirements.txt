@@ -1,0 +1,11 @@
+# Web Scraping
+beautifulsoup4
+selenium
+webdriver-manager
+
+# Data Handling
+pandas
+
+# Utilities
+python-dotenv
+requests
