@@ -7,8 +7,8 @@ def load_and_clean_raw_data():
     estandariza las columnas y los une en un solo DataFrame.
     """
     print("--- 1. Cargando y limpiando datos crudos de la competencia ---")
-    df_test4 = pd.read_csv('test4_complete_with_channel.csv')
-    df_prod = pd.read_csv('products_competition_clean_company_channel_fixed.csv')
+    df_test4 = pd.read_csv('competitors_complete.csv')
+    df_prod = pd.read_csv('wayakit_products_competition.csv')
 
     # --- Lógica de limpieza y renombrado (la misma que ya tenías) ---
     df_test4_clean = df_test4[['industry', 'subindustry', 'type_of_product', 'generic_product_type', 'price_sar', 'company', 'unit_of_measurement', 'total_quantity', 'channel']].copy()

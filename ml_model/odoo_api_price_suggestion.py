@@ -31,7 +31,7 @@ except Exception as e:
     print(f"❌ ERROR de autenticación: {e}")
     exit()
 
-csv_file_path = 'C:\\Users\\barbe\\OneDrive\\Documentos\\wayakit\\ml-prediction-price\\notebooks\\wayakit_prediction_report_final_explicado.csv'
+csv_file_path = 'wayakit_prediction_report.csv'
 try:
     df_results = pd.read_csv(csv_file_path)
     print(f"📄 Archivo CSV '{csv_file_path}' cargado. Se encontraron {len(df_results)} filas.")

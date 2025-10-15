@@ -1,5 +1,5 @@
 INSTRUCTIONS_FILE = 'analysis-odoo.csv'
-OUTPUT_CSV_FILE = 'test-odoo-complete.csv'
+OUTPUT_CSV_FILE = 'competitors_complete.csv'
 CSV_COLUMNS = [
     'date', 'industry', 'subindustry', 'type_of_product', 'generic_product_type',
     'product', 'price_sar', 'company', 'source', 'url',
