@@ -3,7 +3,6 @@ import os
 from dotenv import load_dotenv
 import pandas as pd
 
-# Cargar variables de entorno desde el archivo .env
 load_dotenv()
 
 # --- 1. CONFIGURACIÓN DE CONEXIÓN A ODOO ---

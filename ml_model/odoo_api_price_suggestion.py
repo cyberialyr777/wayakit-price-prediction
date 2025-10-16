@@ -8,14 +8,12 @@ load_dotenv()
 ODOO_URL = os.getenv('ODOO_URL')
 ODOO_USERNAME = os.getenv('ODOO_USERNAME')
 API_TOKEN = os.getenv('ODOO_API_TOKEN')
-
-
-ODOO_DB = ODOO_URL.split('//')[1].split('.')[0]
+ODOO_DB = os.getenv('ODOO_DB')
 
 print("--- Iniciando Script de Carga de Datos a Odoo ---")
 
 if not all([ODOO_URL, ODOO_DB, ODOO_USERNAME, API_TOKEN]):
-    print("❌ ERROR: Faltan variables en tu archivo .env.")
+    print("ERROR: Faltan variables en tu archivo .env.")
     print("   Asegúrate de tener ODOO_URL, ODOO_USERNAME y ODOO_API_TOKEN.")
     exit()
 
@@ -25,24 +23,24 @@ try:
     common = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/common')
     uid = common.authenticate(ODOO_DB, ODOO_USERNAME, API_TOKEN, {})
     models = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/object')
-    print(f"✅ Autenticación exitosa. User ID (uid): {uid}")
+    print(f"Autenticación exitosa. User ID (uid): {uid}")
 
 except Exception as e:
-    print(f"❌ ERROR de autenticación: {e}")
+    print(f"ERROR de autenticación: {e}")
     exit()
 
 csv_file_path = 'wayakit_prediction_report.csv'
 try:
     df_results = pd.read_csv(csv_file_path)
-    print(f"📄 Archivo CSV '{csv_file_path}' cargado. Se encontraron {len(df_results)} filas.")
+    print(f"Archivo CSV '{csv_file_path}' cargado. Se encontraron {len(df_results)} filas.")
 except FileNotFoundError:
-    print(f"❌ ERROR: El archivo '{csv_file_path}' no se encontró.")
+    print(f"ERROR: El archivo '{csv_file_path}' no se encontró.")
     exit()
 
 MODEL_NAME = 'product.price.suggestion'
 all_records_data = []
 
-print(f"\n⚙️ Preparando {len(df_results)} registros para la carga masiva...")
+print(f"\nPreparando {len(df_results)} registros para la carga masiva...")
 
 for index, row in df_results.iterrows():
     try:
@@ -63,7 +61,7 @@ for index, row in df_results.iterrows():
         all_records_data.append(record_data)
 
     except Exception as e:
-        print(f"  ⚠️ Error al procesar la fila {index+1} (Product ID: {row.get('Product_ID', 'N/A')}). Saltando registro. Error: {e}")
+        print(f"Error al procesar la fila {index+1} (Product ID: {row.get('Product_ID', 'N/A')}). Saltando registro. Error: {e}")
 
 if all_records_data:
     print(f"\n🚀 Enviando {len(all_records_data)} registros a Odoo en una sola llamada...")
@@ -75,13 +73,13 @@ if all_records_data:
             [all_records_data]
         )
         
-        print(f"✅ ¡Carga masiva completada con éxito!")
+        print(f"¡Carga masiva completada con éxito!")
         print(f"   Se crearon {len(new_record_ids)} nuevos registros.")
 
     except Exception as e:
-        print(f"❌ ERROR CRÍTICO durante la carga masiva: {e}")
+        print(f"ERROR CRÍTICO durante la carga masiva: {e}")
         print("   La operación falló. Ningún registro fue creado en este lote.")
 else:
-    print("🤷 No se prepararon registros para la carga. Revisa si hubo errores en el procesamiento de filas.")
+    print("No se prepararon registros para la carga. Revisa si hubo errores en el procesamiento de filas.")
 
-print("\n🎉 Proceso finalizado.")
+print("\nProceso finalizado.")

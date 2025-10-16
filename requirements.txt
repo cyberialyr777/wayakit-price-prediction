@@ -5,6 +5,11 @@ webdriver-manager
 
 # Data Handling
 pandas
+numpy
+
+# Machine Learning
+scikit-learn
+joblib
 
 # Utilities
 python-dotenv

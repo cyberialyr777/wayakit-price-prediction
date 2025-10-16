@@ -2,15 +2,10 @@ import pandas as pd
 import numpy as np
 
 def load_and_clean_raw_data():
-    """
-    Carga los dos archivos CSV crudos de la competencia, los limpia, 
-    estandariza las columnas y los une en un solo DataFrame.
-    """
     print("--- 1. Cargando y limpiando datos crudos de la competencia ---")
-    df_test4 = pd.read_csv('competitors_complete.csv')
+    df_test4 = pd.read_csv('../scraper/competitors_complete.csv')
     df_prod = pd.read_csv('wayakit_products_competition.csv')
 
-    # --- Lógica de limpieza y renombrado (la misma que ya tenías) ---
     df_test4_clean = df_test4[['industry', 'subindustry', 'type_of_product', 'generic_product_type', 'price_sar', 'company', 'unit_of_measurement', 'total_quantity', 'channel']].copy()
     df_prod_clean = df_prod.rename(columns={
         'Industry': 'industry', 'Sub industry': 'subindustry', 'Type of product': 'type_of_product',
@@ -35,16 +30,13 @@ def load_and_clean_raw_data():
     return competitor_data
 
 def process_volumetric_data(df):
-    """Toma un DataFrame de productos volumétricos y calcula el precio por litro."""
     print("\n--- 2a. Procesando productos volumétricos ---")
     df['unit_of_measurement'] = df['unit_of_measurement'].str.lower().str.strip()
     
-    # Excluir gramos
     original_rows = len(df)
     df = df[df['unit_of_measurement'] != 'g']
     print(f"Se excluyeron {original_rows - len(df)} productos medidos en gramos.")
 
-    # Convertir a litros
     def convert_to_liters(row):
         if row['unit_of_measurement'] == 'ml': return row['total_quantity'] / 1000
         if row['unit_of_measurement'] == 'fl oz': return row['total_quantity'] * 0.0295735
@@ -52,7 +44,6 @@ def process_volumetric_data(df):
         return None
     df['volume_liters'] = df.apply(convert_to_liters, axis=1)
 
-    # Calcular precio por litro
     df.dropna(subset=['volume_liters'], inplace=True)
     df['price_per_liter'] = df['price_sar'] / df['volume_liters']
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
@@ -62,7 +53,6 @@ def process_volumetric_data(df):
     print("✅ Archivo 'competitor_volumetric_processed.csv' guardado.")
 
 def process_unit_data(df):
-    """Toma un DataFrame de productos por unidad y calcula el precio por pieza."""
     print("\n--- 2b. Procesando productos por unidad ---")
     df['total_quantity'] = pd.to_numeric(df['total_quantity'], errors='coerce')
     df.dropna(subset=['total_quantity'], inplace=True)
@@ -76,7 +66,6 @@ def process_unit_data(df):
     print("✅ Archivo 'competitor_unit_processed.csv' guardado.")
 
 def main():
-    """Orquesta el proceso completo de preprocesamiento de datos de la competencia."""
     try:
         competitor_data = load_and_clean_raw_data()
         
