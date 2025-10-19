@@ -1,25 +1,55 @@
 import xmlrpc.client
 import os
-from dotenv import load_dotenv
+from aiohttp import ClientError
 import pandas as pd
+import boto3
+import json
+import base64
 
-load_dotenv()
+def get_secret(secret_name, region_name="me-south-1"):
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+    try:
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
+        )
+    except ClientError as e:
+        print(f"Error al obtener el secreto: {e}")
+        raise e 
+    else:
+        if 'SecretString' in get_secret_value_response:
+            secret = get_secret_value_response['SecretString']
+            return json.loads(secret)
+        else:
+            decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
+            return json.loads(decoded_binary_secret)
 
-# --- 1. CONFIGURACIÓN DE CONEXIÓN A ODOO ---
-ODOO_URL = os.getenv('ODOO_URL')
-ODOO_DB = os.getenv('ODOO_DB')
-ODOO_USERNAME = os.getenv('ODOO_USERNAME')
-API_TOKEN = os.getenv('ODOO_API_TOKEN')
+SECRET_NAME = "wayakit/test/credentials" 
+AWS_REGION = "me-south-1" 
+
+try:
+    secrets = get_secret(SECRET_NAME, AWS_REGION)
+
+    ODOO_URL = secrets.get('ODOO_URL')
+    ODOO_DB = secrets.get('ODOO_DB')
+    ODOO_USERNAME = secrets.get('ODOO_USERNAME')
+    API_TOKEN = secrets.get('ODOO_API_TOKEN')
+
+    if not all([ODOO_URL, ODOO_DB, ODOO_USERNAME, API_TOKEN]):
+        print("ERROR: Faltan secretos esenciales de Odoo recuperados de AWS Secrets Manager.")
+        exit()
+
+    print(f"Secretos cargados exitosamente desde AWS Secrets Manager para DB: {ODOO_DB}")
+
+except Exception as e:
+    print(f"ERROR CRÍTICO: No se pudieron cargar los secretos. {e}")
+    exit()
 
 # Nombre del archivo de salida
 OUTPUT_CSV_FILE = 'wayakit_products.csv'
-
-# Validar que las credenciales existan
-if not all([ODOO_URL, ODOO_DB, ODOO_USERNAME, API_TOKEN]):
-    print("❌ ERROR: Faltan variables de entorno. Asegúrate de que ODOO_URL, ODOO_DB, ODOO_USERNAME y API_TOKEN estén en tu archivo .env.")
-    exit()
-
-print(f"✅ Configuración cargada para la base de datos: {ODOO_DB}")
 
 # --- 2. AUTENTICACIÓN CON ODOO ---
 try:

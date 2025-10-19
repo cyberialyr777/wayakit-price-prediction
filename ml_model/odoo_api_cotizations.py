@@ -1,25 +1,56 @@
 import xmlrpc.client
-import os
-from dotenv import load_dotenv
 import pandas as pd
-import numpy as np # <-- 1. IMPORTAMOS NUMPY
+import numpy as np
+import boto3
+import json
+import os
+import base64
+from botocore.exceptions import ClientError
 
-# --- Carga de configuración (sin cambios) ---
-load_dotenv()
-ODOO_URL = os.getenv('ODOO_URL')
-ODOO_USERNAME = os.getenv('ODOO_USERNAME')
-API_TOKEN = os.getenv('ODOO_API_TOKEN')
-ODOO_DB = os.getenv('ODOO_DB')
+def get_secret(secret_name, region_name="me-south-1"):
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+    try:
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
+        )
+    except ClientError as e:
+        print(f"Error al obtener el secreto: {e}")
+        raise e 
+    else:
+        if 'SecretString' in get_secret_value_response:
+            secret = get_secret_value_response['SecretString']
+            return json.loads(secret)
+        else:
+            decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
+            return json.loads(decoded_binary_secret)
+
+SECRET_NAME = "wayakit/test/credentials" 
+AWS_REGION = "me-south-1" 
+
+try:
+    secrets = get_secret(SECRET_NAME, AWS_REGION)
+
+    ODOO_URL = secrets.get('ODOO_URL')
+    ODOO_DB = secrets.get('ODOO_DB')
+    ODOO_USERNAME = secrets.get('ODOO_USERNAME')
+    API_TOKEN = secrets.get('ODOO_API_TOKEN')
+
+    if not all([ODOO_URL, ODOO_DB, ODOO_USERNAME, API_TOKEN]):
+        print("ERROR: Faltan secretos esenciales de Odoo recuperados de AWS Secrets Manager.")
+        exit()
+
+    print(f"Secretos cargados exitosamente desde AWS Secrets Manager para DB: {ODOO_DB}")
+
+except Exception as e:
+    print(f"ERROR CRÍTICO: No se pudieron cargar los secretos. {e}")
+    exit()
 
 OUTPUT_CSV_FILE = 'wayakit_cotizations.csv'
 
-if not all([ODOO_URL, ODOO_DB, ODOO_USERNAME, API_TOKEN]):
-    print("ERROR: Faltan variables de entorno. Asegúrate de que tu archivo .env esté completo.")
-    exit()
-
-print(f"Configuración cargada para la base de datos: {ODOO_DB}")
-
-# --- Autenticación en Odoo (sin cambios) ---
 try:
     common = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/common')
     uid = common.authenticate(ODOO_DB, ODOO_USERNAME, API_TOKEN, {})
@@ -29,7 +60,6 @@ except Exception as e:
     print(f"ERROR de autenticación: {e}")
     exit()
 
-# --- Modelo y Filtros (sin cambios) ---
 MODEL_NAME = 'sale.order.line'
 
 domain = [

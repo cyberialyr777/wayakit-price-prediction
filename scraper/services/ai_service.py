@@ -2,19 +2,53 @@ import os
 import json
 import requests
 import time
-from dotenv import load_dotenv
+import boto3
+import base64
+from botocore.exceptions import ClientError
+
+def get_secret(secret_name, region_name="me-south-1"):
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+
+    try:
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
+        )
+    except ClientError as e:
+        print(f"Error al obtener el secreto '{secret_name}': {e}")
+        raise e
+    else:
+        if 'SecretString' in get_secret_value_response:
+            secret = get_secret_value_response['SecretString']
+            return json.loads(secret)
+        else:
+            decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
+            return json.loads(decoded_binary_secret)
 
 class RelevanceAgent:
     def __init__(self):
-        load_dotenv()
-        self.api_key = os.getenv("GEMINI_API_KEY")
+        SECRET_NAME = "wayakit/test/credentials" 
+        AWS_REGION = "me-south-1" 
+
+        try:
+            secrets = get_secret(SECRET_NAME, AWS_REGION)
+            self.api_key = secrets.get('GEMINI_API_KEY')
+
+            if not self.api_key:
+                print("ERROR: GEMINI_API_KEY no encontrado en AWS Secrets Manager.")
+            else:
+                print("GEMINI_API_KEY cargada exitosamente desde AWS Secrets Manager.")
+
+        except Exception as e:
+            print(f"ERROR CRÍTICO: No se pudo cargar GEMINI_API_KEY desde Secrets Manager. {e}")
+            self.api_key = None
+
         if not self.api_key:
             print("API KEY not found")
-
-        # CAMBIO 1: Se definen dos URLs, una para cada modelo.
-        # URL para la función de relevancia (is_relevant) que usa flash-lite.
         self.relevance_api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={self.api_key}"
-        # URL para la función de extracción de unidades (extract_wipes_units) que usa 2.5-pro.
         self.extraction_api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key={self.api_key}"
         
         self.headers = {'Content-Type': 'application/json'}

@@ -14,3 +14,4 @@ joblib
 # Utilities
 python-dotenv
 requests
+boto3
