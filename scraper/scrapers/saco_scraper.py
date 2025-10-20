@@ -10,6 +10,9 @@ import config
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
+from log_config import get_logger
+
+logger = get_logger()
 
 class SacoScraper:
     def __init__(self, driver_path, relevance_agent):
@@ -18,22 +21,22 @@ class SacoScraper:
         self.base_url = "https://www.saco.sa/en/"
 
     def _log(self, msg):
-        print(msg, flush=True)
+        logger.info(msg)
 
     def _handle_overlays(self, driver):
         try:
             cookie_accept_button = WebDriverWait(driver, 5).until(
                 EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Accept')]"))
             )
-            self._log("    > Cookie banner detected. Clicking 'Accept'.")
+            logger.info("    > Cookie banner detected. Clicking 'Accept'.")
             driver.execute_script("arguments[0].click();", cookie_accept_button)
             time.sleep(2)
         except TimeoutException:
-            self._log("    > No cookie banner detected. Continuing.")
+            logger.debug("    > No cookie banner detected. Continuing.")
             pass
 
     def _extract_product_details(self, driver, product_url, search_mode):
-        self._log(f"        -> Extracting details from: {product_url}")
+        logger.debug(f"        -> Extracting details from: {product_url}")
         driver.get(product_url)
         WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "h1.product-title"))
@@ -74,7 +77,7 @@ class SacoScraper:
             if parsed_data:
                 details['Total quantity'] = parsed_data['quantity']
                 details['Unit of measurement'] = parsed_data['unit']
-                self._log(f"        -> Extracted amount: {details['Total quantity']} {details['Unit of measurement']}")
+                logger.debug(f"        -> Extracted amount: {details['Total quantity']} {details['Unit of measurement']}")
 
         return details
 
@@ -114,13 +117,13 @@ class SacoScraper:
                 EC.presence_of_element_located((By.CSS_SELECTOR, "div.product-inner-container"))
             )
         except TimeoutException:
-            self._log("    > No product containers found on the initial page. Skipping keyword.")
+            logger.warning("    > No product containers found on the initial page. Skipping keyword.")
             if driver:
                 driver.quit()
             return []
 
         while len(all_found_products) < products_to_find_limit:
-            self._log(f"--- Analyzing Page {page_num} ---")
+            logger.info(f"--- Analyzing Page {page_num} ---")
             
             search_page_url = driver.current_url
             time.sleep(5)
@@ -130,10 +133,10 @@ class SacoScraper:
             num_containers = len(product_containers)
 
             if num_containers == 0:
-                self._log("    ! No products containers found on this page.")
+                logger.warning("    ! No products containers found on this page.")
                 break
 
-            self._log(f"    > Found {num_containers} product containers on this page.")
+            logger.debug(f"    > Found {num_containers} product containers on this page.")
 
             
             for i in range(num_containers):
@@ -151,13 +154,13 @@ class SacoScraper:
                     try:
                         product_link = container.find_element(By.CSS_SELECTOR, "p.product-name a")
                         if not product_link.text.strip():
-                            self._log(f"      -> Skipping empty product container #{i+1}.")
+                            logger.debug(f"      -> Skipping empty product container #{i+1}.")
                             continue 
                     except NoSuchElementException:
-                        self._log(f"      -> Skipping container #{i+1} (no product link found inside).")
+                        logger.debug(f"      -> Skipping container #{i+1} (no product link found inside).")
                         continue 
 
-                    self._log(f"      -> Processing product {i+1}/{num_containers}...")
+                    logger.debug(f"      -> Processing product {i+1}/{num_containers}...")
                     
                     driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", product_link)
                     time.sleep(1)
@@ -174,11 +177,11 @@ class SacoScraper:
                         is_relevant = self.relevance_agent.is_relevant(product_details.get('Product'), keyword)
                         if is_relevant:
                             all_found_products.append(product_details)
-                            self._log(f"      -> AI VALIDATED. Product saved: {product_details['Product'][:60]}...")
+                            logger.info(f"      -> AI VALIDATED. Product saved: {product_details['Product'][:60]}...")
                         else:
-                            self._log(f"      -> DISCARDED BY AI (Not relevant): {product_details['Product'][:60]}...")
+                            logger.info(f"      -> DISCARDED BY AI (Not relevant): {product_details['Product'][:60]}...")
                     else:
-                        self._log(f"      -> DISCARDED (no quantity): {product_details.get('Product', 'N/A')[:60]}...")
+                        logger.info(f"      -> DISCARDED (no quantity): {product_details.get('Product', 'N/A')[:60]}...")
 
                     driver.get(search_page_url)
                     WebDriverWait(driver, 20).until(
@@ -187,40 +190,40 @@ class SacoScraper:
                     time.sleep(2)
 
                 except (TimeoutException, StaleElementReferenceException, ElementClickInterceptedException) as e:
-                    self._log(f"      -> WARNING: Could not process product {i+1}. Skipping. Reason: {type(e).__name__}")
+                    logger.warning(f"      -> WARNING: Could not process product {i+1}. Skipping. Reason: {type(e).__name__}")
                     driver.get(search_page_url)
                     WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.product-inner-container")))
                     continue
                 except InvalidSessionIdException:
-                    self._log(f"      -> FATAL ERROR: Browser session lost. Aborting scrape for '{keyword}'.")
+                    logger.error(f"      -> FATAL ERROR: Browser session lost. Aborting scrape for '{keyword}'.")
                     if driver:
                         driver.quit()
                     return all_found_products
             
             if len(all_found_products) >= products_to_find_limit:
-                self._log(f"    > Target of {products_to_find_limit} products reached.")
+                logger.info(f"    > Target of {products_to_find_limit} products reached.")
                 break
             
             try:
                 current_page_url = driver.current_url
                 next_page_button = driver.find_element(By.CSS_SELECTOR, "a.next")
-                self._log("    > Next page button found. Attempting to navigate...")
+                logger.debug("    > Next page button found. Attempting to navigate...")
                 
                 driver.execute_script("arguments[0].click();", next_page_button)
                 time.sleep(3)
 
                 if driver.current_url == current_page_url:
-                    self._log("    > URL did not change. Reached the last page.")
+                    logger.info("    > URL did not change. Reached the last page.")
                     break
                 else:
                     page_num += 1
-                    self._log("    > Successfully navigated to the next page.")
+                    logger.info("    > Successfully navigated to the next page.")
 
             except:
-                self._log("    > No more pages found. Ending pagination.")
+                logger.debug("    > No more pages found. Ending pagination.")
                 break
 
-        self._log(f"\n  [Saco Scraper] Finished scraping. Found data for {len(all_found_products)} products.")
+        logger.info(f"\n  [Saco Scraper] Finished scraping. Found data for {len(all_found_products)} products.")
         if driver:
             driver.quit()
         return all_found_products

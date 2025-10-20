@@ -5,6 +5,9 @@ import time
 import boto3
 import base64
 from botocore.exceptions import ClientError
+from log_config import get_logger
+
+logger = get_logger()
 
 def get_secret(secret_name, region_name="me-south-1"):
     session = boto3.session.Session()
@@ -18,7 +21,7 @@ def get_secret(secret_name, region_name="me-south-1"):
             SecretId=secret_name
         )
     except ClientError as e:
-        print(f"Error al obtener el secreto '{secret_name}': {e}")
+        logger.error(f"Error getting secret '{secret_name}'", exc_info=True)
         raise e
     else:
         if 'SecretString' in get_secret_value_response:
@@ -38,16 +41,16 @@ class RelevanceAgent:
             self.api_key = secrets.get('GEMINI_API_KEY')
 
             if not self.api_key:
-                print("ERROR: GEMINI_API_KEY no encontrado en AWS Secrets Manager.")
+                logger.error("ERROR: GEMINI_API_KEY not found in AWS Secrets Manager.")
             else:
-                print("GEMINI_API_KEY cargada exitosamente desde AWS Secrets Manager.")
+                logger.info("GEMINI_API_KEY loaded successfully from AWS Secrets Manager.")
 
         except Exception as e:
-            print(f"ERROR CRÍTICO: No se pudo cargar GEMINI_API_KEY desde Secrets Manager. {e}")
+            logger.error(f"CRITICAL ERROR: Could not load GEMINI_API_KEY from Secrets Manager.", exc_info=True)
             self.api_key = None
 
         if not self.api_key:
-            print("API KEY not found")
+            logger.warning("API KEY not found")
         self.relevance_api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={self.api_key}"
         self.extraction_api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key={self.api_key}"
         
@@ -146,7 +149,7 @@ class RelevanceAgent:
                 response = requests.post(self.relevance_api_url, headers=self.headers, data=json.dumps(payload))
                 
                 if response.status_code == 429:
-                    print("      -> Rate limit hit. Waiting for 60 seconds to reset...")
+                    logger.warning("      -> Rate limit hit. Waiting for 60 seconds to reset...")
                     time.sleep(60)
                     continue
 
@@ -155,24 +158,24 @@ class RelevanceAgent:
 
                 if result.get('candidates'):
                     decision = result['candidates'][0]['content']['parts'][0]['text'].strip().lower()
-                    print(f"      -> IA decision: {decision}")
+                    logger.debug(f"      -> IA decision: {decision}")
                     return "yes" in decision
                 else:
-                    print("      -> No candidates found in AI response.")
+                    logger.warning("      -> No candidates found in AI response.")
                     return False
 
             except requests.exceptions.RequestException as e:
-                print(f"      -> Network error contacting AI agent: {e}")
+                logger.error(f"      -> Network error contacting AI agent", exc_info=True)
                 if attempt < max_retries - 1:
-                    print(f"      -> Retrying in 10 seconds... (Attempt {attempt + 1}/{max_retries})")
+                    logger.info(f"      -> Retrying in 10 seconds... (Attempt {attempt + 1}/{max_retries})")
                     time.sleep(10)
                 else:
                     return False
             except Exception as e:
-                print(f"      -> Unexpected error processing AI response: {e}")
+                logger.error(f"      -> Unexpected error processing AI response", exc_info=True)
                 return False
         
-        print("      -> Failed to get a valid response from AI after multiple retries.")
+        logger.warning("      -> Failed to get a valid response from AI after multiple retries.")
         return False
     
     def extract_wipes_units(self, product_title: str) -> int:
@@ -238,7 +241,7 @@ Title: "{product_title}"
                 response = requests.post(self.extraction_api_url, headers=self.headers, data=json.dumps(payload))
 
                 if response.status_code == 429:
-                    print("      -> Rate limit hit (units). Waiting for 60 seconds to reset...")
+                    logger.warning("      -> Rate limit hit (units). Waiting for 60 seconds to reset...")
                     time.sleep(60)
                     continue
 
@@ -258,28 +261,28 @@ Title: "{product_title}"
                         reasoning = data.get("reasoning", "No reasoning provided.")
                         total_units = int(data.get("total_units", 0))
 
-                        print(f"      -> IA reasoning: {reasoning}")
-                        print(f"      -> IA wipes units: {total_units}")
+                        logger.debug(f"      -> IA reasoning: {reasoning}")
+                        logger.debug(f"      -> IA wipes units: {total_units}")
                         return total_units
                         
                     except (json.JSONDecodeError, KeyError, TypeError) as e:
-                        print(f"      -> Failed to parse JSON response: {e}")
-                        print(f"      -> Raw response: '{text_response}'")
+                        logger.error(f"      -> Failed to parse JSON response", exc_info=True)
+                        logger.debug(f"      -> Raw response: '{text_response}'")
                         return 0
                 else:
-                    print("      -> No candidates found in AI response (units).")
+                    logger.warning("      -> No candidates found in AI response (units).")
                     return 0
 
             except requests.exceptions.RequestException as e:
-                print(f"      -> Network error contacting AI agent (units): {e}")
+                logger.error(f"      -> Network error contacting AI agent (units)", exc_info=True)
                 if attempt < max_retries - 1:
-                    print(f"      -> Retrying in 10 seconds... (Attempt {attempt + 1}/{max_retries})")
+                    logger.info(f"      -> Retrying in 10 seconds... (Attempt {attempt + 1}/{max_retries})")
                     time.sleep(10)
                 else:
                     return 0
             except Exception as e:
-                print(f"      -> Unexpected error processing AI response (units): {e}")
+                logger.error(f"      -> Unexpected error processing AI response (units)", exc_info=True)
                 return 0
 
-        print("      -> Failed to get a valid units response from AI after multiple retries.")
+        logger.warning("      -> Failed to get a valid units response from AI after multiple retries.")
         return 0

@@ -2,10 +2,15 @@ import pandas as pd
 import numpy as np
 import joblib
 import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from log_config import get_logger
+
+logger = get_logger()
 
 def load_artifacts():
-    """Carga los modelos entrenados y las listas de columnas desde el disco."""
-    print("--- 1. Cargando modelos y columnas entrenadas ---")
+    """Loads trained models and column lists from disk."""
+    logger.info("--- 1. Loading trained models and columns ---")
     model_dir = 'ml_model/trained_models'
     
     try:
@@ -14,43 +19,43 @@ def load_artifacts():
         vol_cols = joblib.load(os.path.join(model_dir, 'volumetric_model_columns.joblib'))
         unit_cols = joblib.load(os.path.join(model_dir, 'unit_model_columns.joblib'))
         
-        print("✅ Modelos y columnas cargados exitosamente.")
+        logger.info("✅ Models and columns loaded successfully.")
         return model_vol, model_unit, vol_cols, unit_cols
     except FileNotFoundError:
-        print(f"❌ ERROR: No se encontraron los archivos de modelo en la carpeta '{model_dir}'.")
-        print("➡️ Solución: Asegúrate de haber ejecutado '2_train_models.py' primero.")
+        logger.error(f"❌ ERROR: Model files not found in folder '{model_dir}'.")
+        logger.warning("➡️ Solution: Make sure you have run '2_train_models.py' first.")
         return None, None, None, None
 
 def prepare_prediction_data():
-    """Carga los productos de Wayakit, los limpia y los enriquece con datos de cotizaciones pasadas."""
-    print("\n--- 2. Preparando la lista de productos de Wayakit para la predicción ---")
+    """Loads Wayakit products, cleans them and enriches with past quotation data."""
+    logger.info("\n--- 2. Preparing Wayakit product list for prediction ---")
     df_wayakit = pd.read_csv('wayakit_products_to_predict_odoo.csv')
     df_quotes_raw = pd.read_csv('wayakit_cotizations.csv')
     
-    # --- CORRECCIÓN DE ORDEN (COMO SUGERISTE) ---
-    # 1. Limpiar y renombrar columnas ANTES de unir.
+    # --- ORDER CORRECTION (AS YOU SUGGESTED) ---
+    # 1. Clean and rename columns BEFORE merging.
     df_wayakit.columns = df_wayakit.columns.str.strip()
     df_wayakit.rename(columns={
         'SubIndustry': 'subindustry', 'Industry': 'industry', 
         'Generic product type': 'generic_product_type', 'Type_of_product':'type_of_product'
     }, inplace=True)
 
-    # 2. Preparar y unir con cotizaciones.
+    # 2. Prepare and merge with quotations.
     quotes_df = df_quotes_raw[['Product_ID', 'approved_quote_price']].drop_duplicates(subset='Product_ID', keep='last')
     df_wayakit = pd.merge(df_wayakit, quotes_df, on='Product_ID', how='left')
     df_wayakit['approved_quote_price'] = df_wayakit['approved_quote_price'].fillna(0.0)
 
-    # 3. Añadir columnas 'company' y 'channel'.
+    # 3. Add 'company' and 'channel' columns.
     df_wayakit['company'] = 'Wayakit'
     b2c_subindustries = ['home', 'automotive', 'pets']
     df_wayakit['channel'] = np.where(df_wayakit['subindustry'].str.lower().isin(b2c_subindustries), 'B2C', 'B2B')
     
-    print(f"✅ Se prepararon {len(df_wayakit)} productos para la predicción.")
+    logger.info(f"✅ Prepared {len(df_wayakit)} products for prediction.")
     return df_wayakit
 
 def generate_predictions(df_wayakit, model_vol, model_unit, vol_cols, unit_cols):
-    """Itera sobre los productos y genera una predicción de precio para cada uno."""
-    print("\n--- 3. Iniciando la generación de predicciones ---")
+    """Iterates over products and generates a price prediction for each one."""
+    logger.info("\n--- 3. Starting prediction generation ---")
     report_list = []
 
     for _, row in df_wayakit.iterrows():
@@ -95,13 +100,13 @@ def generate_predictions(df_wayakit, model_vol, model_unit, vol_cols, unit_cols)
     return pd.DataFrame(report_list)
 
 def main():
-    """Orquesta el proceso completo de predicción y generación de reporte."""
-    print("\n" + "="*60)
-    print("--- Iniciando Script de Predicción de Precios ---")
-    print("="*60)
+    """Orchestrates the complete prediction and report generation process."""
+    logger.info("\n" + "="*60)
+    logger.info("--- Starting Price Prediction Script ---")
+    logger.info("="*60)
     
     artifacts = load_artifacts()
-    if not all(artifacts): # Si falla la carga de modelos, no continuar
+    if not all(artifacts): # If model loading fails, don't continue
         return
         
     model_vol, model_unit, vol_cols, unit_cols = artifacts
@@ -109,18 +114,18 @@ def main():
     df_to_predict = prepare_prediction_data()
     report_df = generate_predictions(df_to_predict, model_vol, model_unit, vol_cols, unit_cols)
 
-    # Guardar y analizar el reporte final
+    # Save and analyze final report
     output_filename = 'wayakit_prediction_report.csv'
     report_df.to_csv(output_filename, index=False)
-    print(f"\n--- 4. Reporte final guardado como '{output_filename}' ---")
+    logger.info(f"\n--- 4. Final report saved as '{output_filename}' ---")
 
     loss_products_count = (report_df['predicted_price'] <= report_df['cost_per_unit']).sum()
-    print("\n" + "-"*50)
-    print("Análisis de Rentabilidad:")
-    print(f"Se encontraron {loss_products_count} productos cuyo precio de venta sugerido es MENOR o IGUAL a su costo.")
-    print("-" * 50)
+    logger.info("\n" + "-"*50)
+    logger.info("Profitability Analysis:")
+    logger.warning(f"Found {loss_products_count} products whose suggested selling price is LOWER or EQUAL to their cost.")
+    logger.info("-" * 50)
     
-    print("\n🎉 Proceso de predicción completado exitosamente.")
+    logger.info("\n🎉 Prediction process completed successfully.")
 
 if __name__ == "__main__":
     main()

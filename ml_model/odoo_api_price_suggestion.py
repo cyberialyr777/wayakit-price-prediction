@@ -6,6 +6,11 @@ from datetime import datetime
 import boto3
 import json
 import base64
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from log_config import get_logger
+
+logger = get_logger()
 
 def get_secret(secret_name, region_name="me-south-1"):
     session = boto3.session.Session()
@@ -18,7 +23,7 @@ def get_secret(secret_name, region_name="me-south-1"):
             SecretId=secret_name
         )
     except ClientError as e:
-        print(f"Error al obtener el secreto: {e}")
+        logger.error(f"Error al obtener el secreto", exc_info=True)
         raise e 
     else:
         if 'SecretString' in get_secret_value_response:
@@ -40,37 +45,37 @@ try:
     API_TOKEN = secrets.get('ODOO_API_TOKEN')
 
     if not all([ODOO_URL, ODOO_DB, ODOO_USERNAME, API_TOKEN]):
-        print("ERROR: Faltan secretos esenciales de Odoo recuperados de AWS Secrets Manager.")
+        logger.error("ERROR: Faltan secretos esenciales de Odoo recuperados de AWS Secrets Manager.")
         exit()
 
-    print(f"Secretos cargados exitosamente desde AWS Secrets Manager para DB: {ODOO_DB}")
+    logger.info(f"Secretos cargados exitosamente desde AWS Secrets Manager para DB: {ODOO_DB}")
 
 except Exception as e:
-    print(f"ERROR CRÍTICO: No se pudieron cargar los secretos. {e}")
+    logger.error(f"ERROR CRÍTICO: No se pudieron cargar los secretos.", exc_info=True)
     exit()
 
 try:
     common = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/common')
     uid = common.authenticate(ODOO_DB, ODOO_USERNAME, API_TOKEN, {})
     models = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/object')
-    print(f"Autenticación exitosa. User ID (uid): {uid}")
+    logger.info(f"Autenticación exitosa. User ID (uid): {uid}")
 
 except Exception as e:
-    print(f"ERROR de autenticación: {e}")
+    logger.error(f"ERROR de autenticación", exc_info=True)
     exit()
 
 csv_file_path = 'wayakit_prediction_report.csv'
 try:
     df_results = pd.read_csv(csv_file_path)
-    print(f"Archivo CSV '{csv_file_path}' cargado. Se encontraron {len(df_results)} filas.")
+    logger.info(f"Archivo CSV '{csv_file_path}' cargado. Se encontraron {len(df_results)} filas.")
 except FileNotFoundError:
-    print(f"ERROR: El archivo '{csv_file_path}' no se encontró.")
+    logger.error(f"ERROR: El archivo '{csv_file_path}' no se encontró.")
     exit()
 
 MODEL_NAME = 'product.price.suggestion'
 all_records_data = []
 
-print(f"\nPreparando {len(df_results)} registros para la carga masiva...")
+logger.info(f"\nPreparando {len(df_results)} registros para la carga masiva...")
 
 for index, row in df_results.iterrows():
     try:
@@ -91,10 +96,10 @@ for index, row in df_results.iterrows():
         all_records_data.append(record_data)
 
     except Exception as e:
-        print(f"Error al procesar la fila {index+1} (Product ID: {row.get('Product_ID', 'N/A')}). Saltando registro. Error: {e}")
+        logger.warning(f"Error al procesar la fila {index+1} (Product ID: {row.get('Product_ID', 'N/A')}). Saltando registro.", exc_info=True)
 
 if all_records_data:
-    print(f"\n🚀 Enviando {len(all_records_data)} registros a Odoo en una sola llamada...")
+    logger.info(f"\n🚀 Enviando {len(all_records_data)} registros a Odoo en una sola llamada...")
     try:
         new_record_ids = models.execute_kw(
             ODOO_DB, uid, API_TOKEN,
@@ -103,13 +108,13 @@ if all_records_data:
             [all_records_data]
         )
         
-        print(f"¡Carga masiva completada con éxito!")
-        print(f"   Se crearon {len(new_record_ids)} nuevos registros.")
+        logger.info(f"¡Carga masiva completada con éxito!")
+        logger.info(f"   Se crearon {len(new_record_ids)} nuevos registros.")
 
     except Exception as e:
-        print(f"ERROR CRÍTICO durante la carga masiva: {e}")
-        print("   La operación falló. Ningún registro fue creado en este lote.")
+        logger.error(f"ERROR CRÍTICO durante la carga masiva", exc_info=True)
+        logger.error("   La operación falló. Ningún registro fue creado en este lote.")
 else:
-    print("No se prepararon registros para la carga. Revisa si hubo errores en el procesamiento de filas.")
+    logger.warning("No se prepararon registros para la carga. Revisa si hubo errores en el procesamiento de filas.")
 
-print("\nProceso finalizado.")
+logger.info("\nProceso finalizado.")

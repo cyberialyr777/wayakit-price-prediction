@@ -9,6 +9,9 @@ import config
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
+from log_config import get_logger
+
+logger = get_logger()
 
 class MumzworldScraper:
     def __init__(self, driver_path, relevance_agent):
@@ -17,7 +20,7 @@ class MumzworldScraper:
         self.base_url = "https://www.mumzworld.com/sa-en/"
 
     def _log(self, msg):
-        print(msg, flush=True)
+        logger.info(msg)
 
     def _safe_get_text(self, element):
         return element.get_text(strip=True) if element else None
@@ -54,17 +57,17 @@ class MumzworldScraper:
                     if multiplier_match:
                         multiplier = int(multiplier_match.group(1))
                         details['Total quantity'] = base_quantity * multiplier
-                        self._log(f"      -> Multiplier found: {base_quantity} * {multiplier} = {details['Total quantity']}")
+                        logger.debug(f"      -> Multiplier found: {base_quantity} * {multiplier} = {details['Total quantity']}")
                     else:
                         details['Total quantity'] = base_quantity
                     details['Unit of measurement'] = parsed_data['unit']
-                    self._log(f"      -> Extracted amount: {details['Total quantity']} {parsed_data['unit']}")
+                    logger.debug(f"      -> Extracted amount: {details['Total quantity']} {parsed_data['unit']}")
 
             price_tag = soup.find('span', class_='Price_integer__3ngZQ')
             if price_tag:
                 details['Price_SAR'] = self._safe_get_text(price_tag).replace(',', '')
         except Exception as e:
-            self._log(f"      ! Error extracting details from {product_url}: {e}")
+            logger.error(f"      ! Error extracting details from {product_url}", exc_info=True)
         return details
 
     def scrape(self, keyword, search_mode):
@@ -93,27 +96,27 @@ class MumzworldScraper:
         driver = webdriver.Chrome(service=service, options=options)
 
         try:
-            self._log(f"    > Navigating to: {search_url}")
+            logger.info(f"    > Navigating to: {search_url}")
             driver.get(search_url)
             WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.ProductCard_productCard__kFgss")))
-            self._log("    > Search results page loaded. Analyzing products...")
+            logger.info("    > Search results page loaded. Analyzing products...")
 
             soup = BeautifulSoup(driver.page_source, 'html.parser')
             product_containers = soup.select("div.ProductCard_productCard__kFgss")
 
             if not product_containers:
-                self._log("    ! Warning: No product containers found.")
+                logger.warning("    ! Warning: No product containers found.")
                 return []
 
             for container in product_containers:
                 if len(valid_products_found) >= products_to_find:
-                    self._log(f"    > Limit of {products_to_find} VALID products reached.")
+                    logger.info(f"    > Limit of {products_to_find} VALID products reached.")
                     break
 
                 link_tag = container.find('a', class_='ProductCard_productName__Dz1Yx')
                 if link_tag and link_tag.has_attr('href'):
                     product_url = urljoin(self.base_url, link_tag['href'])
-                    self._log(f"      -> Visiting: {product_url[:80]}...")
+                    logger.debug(f"      -> Visiting: {product_url[:80]}...")
                     product_details = self._extract_product_details(driver, product_url, search_mode)
 
                     if product_details.get('Total quantity', 0) > 0:
@@ -121,13 +124,13 @@ class MumzworldScraper:
                         
                         if is_relevant:
                             valid_products_found.append(product_details)
-                            self._log(f"      -> VALID. Extracted: {product_details['Product'][:60]}...")
+                            logger.info(f"      -> VALID. Extracted: {product_details['Product'][:60]}...")
                         else:
-                            self._log(f"      -> DISCARDED (Not relevant by AI): {product_details['Product'][:60]}...")
+                            logger.info(f"      -> DISCARDED (Not relevant by AI): {product_details['Product'][:60]}...")
                     else:
-                        self._log(f"      -> DISCARDED (no quantity): {product_details['Product'][:60]}...")
+                        logger.info(f"      -> DISCARDED (no quantity): {product_details['Product'][:60]}...")
         except Exception as e:
-            self._log(f"    ! Unexpected error occurred in Mumzworld scraper: {e}")
+            logger.error(f"    ! Unexpected error occurred in Mumzworld scraper", exc_info=True)
         finally:
             if driver:
                 driver.quit()

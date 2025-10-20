@@ -12,6 +12,9 @@ import config
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
+from log_config import get_logger
+
+logger = get_logger()
 
 class GoGreenScraper:
     def __init__(self, driver_path, relevance_agent):
@@ -21,7 +24,7 @@ class GoGreenScraper:
         self.products_to_find_limit = 6
 
     def _log(self, msg):
-        print(msg, flush=True)
+        logger.info(msg)
 
     def _safe_get_text(self, soup_element):
         return soup_element.get_text(strip=True) if soup_element else None
@@ -31,7 +34,7 @@ class GoGreenScraper:
             html_tag = driver.find_element(By.TAG_NAME, "html")
             if html_tag.get_attribute("lang") == "en":
                 return True
-            self._log("    -> Cambiando idioma a inglés...")
+            logger.info("    -> Changing language to English...")
             lang_button = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, "a.js-language-shipping"))
             )
@@ -48,10 +51,10 @@ class GoGreenScraper:
             WebDriverWait(driver, 15).until(
                 EC.presence_of_element_located((By.XPATH, "//html[@lang='en']"))
             )
-            self._log("    -> ¡ÉXITO! Idioma verificado correctamente.")
+            logger.info("    -> SUCCESS! Language verified correctly.")
             return True
         except Exception as e:
-            self._log(f"    -> ERROR: No se pudo establecer el idioma a inglés. Error: {e}")
+            logger.error(f"    -> ERROR: Could not set language to English.", exc_info=True)
             return False
 
     def _extract_product_details(self, driver, product_url, search_mode):
@@ -84,10 +87,10 @@ class GoGreenScraper:
                 if parsed_data:
                     details['Total quantity'] = parsed_data['quantity']
                     details['Unit of measurement'] = parsed_data['unit']
-                    self._log(f"        -> Cantidad extraída: {details['Total quantity']} {details['Unit of measurement']}")
+                    logger.debug(f"        -> Quantity extracted: {details['Total quantity']} {details['Unit of measurement']}")
 
         except Exception as e:
-            self._log(f"      ! Error extrayendo detalles de {product_url}: {e}")
+            logger.error(f"      ! Error extracting details from {product_url}", exc_info=True)
         
         return details
 
@@ -100,7 +103,7 @@ class GoGreenScraper:
         options.add_experimental_option('excludeSwitches', ['enable-automation'])
         options.add_experimental_option('useAutomationExtension', False)
         options.add_argument('--disable-notifications')
-        # options.add_argument('--headless')
+        options.add_argument('--headless')
         options.add_argument('--disable-gpu')
         options.add_argument('--disable-webgl')
         options.add_argument('--disable-3d-apis')
@@ -129,7 +132,7 @@ class GoGreenScraper:
             
             soup = BeautifulSoup(driver.page_source, 'html.parser')
             product_containers = soup.select("div.card.card-product")
-            self._log(f"    -> Encontrados {len(product_containers)} productos en la página de resultados.")
+            logger.debug(f"    -> Found {len(product_containers)} products on results page.")
 
             for container in product_containers:
                 if len(all_found_products) >= self.products_to_find_limit:
@@ -140,23 +143,23 @@ class GoGreenScraper:
                     continue
                 
                 product_url = urljoin(self.base_url, link_tag['href'])
-                self._log(f"      -> Procesando: {product_url[:80]}...")
+                logger.debug(f"      -> Processing: {product_url[:80]}...")
                 
                 product_details = self._extract_product_details(driver, product_url, search_mode)
                 
                 if product_details.get('Total quantity', 0) > 0:
                     if self.relevance_agent.is_relevant(product_details.get('Product'), keyword):
                         all_found_products.append(product_details)
-                        self._log(f"      -> PRODUCTO VÁLIDO GUARDADO: {product_details['Product'][:60]}...")
+                        logger.info(f"      -> VALID PRODUCT SAVED: {product_details['Product'][:60]}...")
                     else:
-                        self._log(f"      -> DESCARTADO (No relevante por IA): {product_details['Product'][:60]}...")
+                        logger.info(f"      -> DISCARDED (Not relevant by AI): {product_details['Product'][:60]}...")
                 else:
-                    self._log(f"      -> DESCARTADO (Sin cantidad válida): {product_details['Product'][:60]}...")
+                    logger.info(f"      -> DISCARDED (No valid quantity): {product_details['Product'][:60]}...")
             
         except TimeoutException:
-            self._log("    -> No se encontraron productos o la página tardó demasiado en cargar.")
+            logger.warning("    -> No products found or page took too long to load.")
         except Exception as e:
-            self._log(f"    ! Ocurrió un error inesperado en GoGreen scraper: {e}")
+            logger.error(f"    ! Unexpected error occurred in GoGreen scraper", exc_info=True)
         finally:
             if driver:
                 driver.quit()

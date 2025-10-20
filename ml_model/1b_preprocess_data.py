@@ -1,6 +1,13 @@
     
 import pandas as pd
 import os
+import sys
+
+# Añadir el directorio raíz al path para poder importar log_config
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from log_config import get_logger
+
+logger = get_logger(__name__)
 
 def generar_lista_prediccion():
     archivo_volumetrico = 'competitor_volumetric_processed.csv'
@@ -11,40 +18,40 @@ def generar_lista_prediccion():
     archivos_necesarios = [archivo_volumetrico, archivo_unidades, catalogo_maestro]
     for archivo in archivos_necesarios:
         if not os.path.exists(archivo):
-            print(f"ERROR: El archivo '{archivo}' no se encontró.")
-            print("Dolución: Asegúrate de haber ejecutado primero tu notebook principal.")
+            logger.error(f"File '{archivo}' not found.")
+            logger.warning("Solution: Make sure you have executed the main notebook first.")
             return
 
     try:
-        print("\nPASO 1: Identificando productos que el modelo conoce...")
+        logger.info("STEP 1: Identifying products the model knows...")
         df_vol_comp = pd.read_csv(archivo_volumetrico)
         df_unit_comp = pd.read_csv(archivo_unidades)
         known_product_types = set(list(df_vol_comp['type_of_product'].unique()) + list(df_unit_comp['type_of_product'].unique()))
-        print(f"Se identificaron {len(known_product_types)} tipos de productos que el modelo puede predecir.")
+        logger.info(f"Identified {len(known_product_types)} product types that the model can predict.")
 
-        print("\nPASO 2: Cargando el catálogo de productos maestro...")
+        logger.info("STEP 2: Loading master product catalog...")
         df_catalogue = pd.read_csv(catalogo_maestro, encoding='utf-8-sig')
-        print(f"Se cargaron {len(df_catalogue)} productos del catálogo.")
+        logger.info(f"Loaded {len(df_catalogue)} products from catalog.")
 
-        print("\nPASO 3: Filtrando el catálogo para encontrar productos compatibles...")
+        logger.info("STEP 3: Filtering catalog to find compatible products...")
         df_catalogue['Type_of_product'] = df_catalogue['Type_of_product'].str.strip()
         df_predictable = df_catalogue[df_catalogue['Type_of_product'].isin(known_product_types)].copy()
-        print(f"Se encontraron {len(df_predictable)} productos compatibles.")
+        logger.info(f"Found {len(df_predictable)} compatible products.")
         
-        print(f"\nPASO 4: Guardando el nuevo archivo como '{archivo_salida}'...")
+        logger.info(f"STEP 4: Saving new file as '{archivo_salida}'...")
 
         df_predictable.to_csv(archivo_salida, index=False)
         
-        print("\n¡Proceso completado!")
-        print(f"El archivo '{archivo_salida}' está listo con los productos filtrados y todas sus columnas originales.")
+        logger.info("Process completed!")
+        logger.info(f"File '{archivo_salida}' is ready with filtered products and all original columns.")
 
     except FileNotFoundError:
-        print(f"ERROR: Uno de los archivos base no existe. Re-ejecuta el notebook principal.")
+        logger.error("One of the base files does not exist. Re-run the main notebook.", exc_info=True)
     except KeyError as e:
-        print(f"ERROR: No se encontró la columna 'Type_of_product': {e}")
-        print("Solución: Revisa que esa columna exista en tus archivos CSV.")
+        logger.error(f"Column 'Type_of_product' not found: {e}", exc_info=True)
+        logger.warning("Solution: Check that this column exists in your CSV files.")
     except Exception as e:
-        print(f"\nOcurrió un error inesperado durante el proceso: {e}")
+        logger.error("Unexpected error occurred during process", exc_info=True)
 
 if __name__ == "__main__":
     generar_lista_prediccion()

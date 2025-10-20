@@ -11,6 +11,9 @@ import config
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
+from log_config import get_logger
+
+logger = get_logger()
 
 class OfficeSupplyScraper:
     def __init__(self, driver_path, relevance_agent):
@@ -20,7 +23,7 @@ class OfficeSupplyScraper:
         self.products_to_find_limit = 8
 
     def _log(self, msg):
-        print(msg, flush=True)
+        logger.info(msg)
 
     def _extract_price(self, soup):
         container = soup.select_one('span.ty-price bdi, .ty-price bdi') or soup.select_one('h1 bdi')
@@ -53,7 +56,7 @@ class OfficeSupplyScraper:
         return price
 
     def _extract_product_details(self, driver, product_url, search_mode):
-        self._log(f"        -> Extrayendo detalles de: {product_url}")
+        logger.debug(f"        -> Extracting details from: {product_url}")
         details = {
             'Product': 'Not found', 'Price_SAR': '0.00', 'Company': 'Brand not found',
             'URL': product_url, 'Unit of measurement': 'units', 'Total quantity': 0
@@ -62,11 +65,11 @@ class OfficeSupplyScraper:
         try:
             driver.get(product_url)
             
-            self._log("        -> Esperando a que cargue el precio del producto...")
+            logger.debug("        -> Waiting for product price to load...")
             WebDriverWait(driver, 15).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "span.ty-price-num"))
             )
-            self._log("        -> ¡Precio encontrado! Extrayendo datos.")
+            logger.debug("        -> Price found! Extracting data.")
             
             soup = BeautifulSoup(driver.page_source, 'html.parser')
 
@@ -74,14 +77,14 @@ class OfficeSupplyScraper:
             if name_tag:
                 product_title = name_tag.get_text(strip=True)
                 details['Product'] = product_title
-                self._log(f"        -> TÍTULO EXTRAÍDO: '{product_title}'")
+                logger.debug(f"        -> TITLE EXTRACTED: '{product_title}'")
 
             extracted_price = self._extract_price(soup)
             if extracted_price:
                 details['Price_SAR'] = extracted_price
-                self._log(f"        -> Precio extraído final: {details['Price_SAR']}")
+                logger.debug(f"        -> Final extracted price: {details['Price_SAR']}")
             else:
-                self._log("        -> WARNING: No se pudo extraer el precio (helper). HTML parcial capturado.")
+                logger.warning("        -> WARNING: Could not extract price (helper). Partial HTML captured.")
 
             if details['Product'] != 'Not found':
                 parsed_data = None
@@ -93,15 +96,15 @@ class OfficeSupplyScraper:
                 if parsed_data:
                     details['Total quantity'] = parsed_data['quantity']
                     details['Unit of measurement'] = parsed_data['unit']
-                    self._log(f"        -> Cantidad extraída: {details['Total quantity']} {details['Unit of measurement']}")
+                    logger.debug(f"        -> Quantity extracted: {details['Total quantity']} {details['Unit of measurement']}")
                 else:
-                    self._log("        -> ALERTA: La función de parseo no encontró una cantidad válida.")
+                    logger.warning("        -> ALERT: Parse function did not find a valid quantity.")
 
 
         except TimeoutException:
-            self._log("      ! Error: El precio no se encontró en la página después de 15 segundos.")
+            logger.warning("      ! Error: Price not found on page after 15 seconds.")
         except Exception as e:
-            self._log(f"      ! Error inesperado extrayendo detalles: {e}")
+            logger.error(f"      ! Unexpected error extracting details", exc_info=True)
         
         return details
 
@@ -143,14 +146,14 @@ class OfficeSupplyScraper:
                 EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.ut2-gl__body"))
             )
             
-            self._log("    > Página de resultados de búsqueda cargada.")
+            logger.info("    > Search results page loaded.")
             
             time.sleep(2)
 
             soup = BeautifulSoup(driver.page_source, 'html.parser')
             
             product_containers = soup.select("div.ut2-gl__body")
-            self._log(f"    > Encontrados {len(product_containers)} productos en la página.")
+            logger.debug(f"    > Found {len(product_containers)} products on page.")
 
             product_urls = []
             for container in product_containers:
@@ -158,11 +161,11 @@ class OfficeSupplyScraper:
                 if link_tag and link_tag.has_attr('href'):
                     product_urls.append(urljoin(self.base_url, link_tag['href']))
 
-            self._log(f"    > Se encontraron {len(product_urls)} URLs de productos para procesar.")
+            logger.debug(f"    > Found {len(product_urls)} product URLs to process.")
 
             for product_url in product_urls:
                 if len(all_found_products) >= self.products_to_find_limit:
-                    self._log(f"    > Límite de {self.products_to_find_limit} productos alcanzado.")
+                    logger.info(f"    > Limit of {self.products_to_find_limit} products reached.")
                     break
                 
                 product_details = self._extract_product_details(driver, product_url, search_mode)
@@ -171,16 +174,16 @@ class OfficeSupplyScraper:
                     is_relevant = self.relevance_agent.is_relevant(product_details.get('Product'), keyword)
                     if is_relevant:
                         all_found_products.append(product_details)
-                        self._log(f"      -> PRODUCTO VÁLIDO GUARDADO: {product_details['Product'][:60]}...")
+                        logger.info(f"      -> VALID PRODUCT SAVED: {product_details['Product'][:60]}...")
                     else:
-                        self._log(f"      -> DESCARTADO (No relevante por IA): {product_details['Product'][:60]}...")
+                        logger.info(f"      -> DISCARDED (Not relevant by AI): {product_details['Product'][:60]}...")
                 else:
-                    self._log(f"      -> DESCARTADO (Sin cantidad válida): {product_details.get('Product', 'N/A')[:60]}...")
+                    logger.info(f"      -> DISCARDED (No valid quantity): {product_details.get('Product', 'N/A')[:60]}...")
 
         except TimeoutException:
-            self._log("    > No se encontraron productos o la página tardó demasiado en cargar.")
+            logger.warning("    > No products found or page took too long to load.")
         except Exception as e:
-            self._log(f"    ! Ocurrió un error inesperado durante la búsqueda en OfficeSupply: {e}")
+            logger.error(f"    ! Unexpected error occurred during OfficeSupply search", exc_info=True)
         finally:
             if driver:
                 driver.quit()

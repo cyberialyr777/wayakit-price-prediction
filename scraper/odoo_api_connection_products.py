@@ -5,6 +5,9 @@ import pandas as pd
 import boto3
 import json
 import base64
+from log_config import get_logger
+
+logger = get_logger()
 
 def get_secret(secret_name, region_name="me-south-1"):
     session = boto3.session.Session()
@@ -17,7 +20,7 @@ def get_secret(secret_name, region_name="me-south-1"):
             SecretId=secret_name
         )
     except ClientError as e:
-        print(f"Error al obtener el secreto: {e}")
+        logger.error(f"Error al obtener el secreto", exc_info=True)
         raise e 
     else:
         if 'SecretString' in get_secret_value_response:
@@ -39,25 +42,29 @@ try:
     API_TOKEN = secrets.get('ODOO_API_TOKEN')
 
     if not all([ODOO_URL, ODOO_DB, ODOO_USERNAME, API_TOKEN]):
-        print("ERROR: Faltan secretos esenciales de Odoo recuperados de AWS Secrets Manager.")
+        logger.error("ERROR: Faltan secretos esenciales de Odoo recuperados de AWS Secrets Manager.")
         exit()
 
-    print(f"Secretos cargados exitosamente desde AWS Secrets Manager para DB: {ODOO_DB}")
+    logger.info(f"Secretos cargados exitosamente desde AWS Secrets Manager para DB: {ODOO_DB}")
 
 except Exception as e:
-    print(f"ERROR CRÍTICO: No se pudieron cargar los secretos. {e}")
+    logger.error(f"ERROR CRÍTICO: No se pudieron cargar los secretos.", exc_info=True)
     exit()
 
 try:
     common = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/common')
     uid = common.authenticate(ODOO_DB, ODOO_USERNAME, API_TOKEN, {})
     models = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/object')
-    print(f"Authentication successful. User ID (uid): {uid}")
+    logger.info(f"Authentication successful. User ID (uid): {uid}")
 except Exception as e:
-    print(f"Authentication ERROR: {e}")
+    logger.error(f"Authentication ERROR", exc_info=True)
     exit()
 
 MODEL_NAME = 'product.master'
+
+# Definir archivos de entrada y salida
+MODIFIERS_FILE = 'modifiers_mapping.csv'
+OUTPUT_CSV_FILE = 'analysis-odoo.csv'
 
 products_to_exclude = [
     'F12-Other consumables for FM',
@@ -78,7 +85,7 @@ fields_to_get = [
     'generic_product_type',
 ]
 
-print(f"\nSearching records in '{MODEL_NAME}' with advanced filters...")
+logger.info(f"\nSearching records in '{MODEL_NAME}' with advanced filters...")
 
 try:
     records = models.execute_kw(
@@ -88,10 +95,10 @@ try:
         [domain],
         {'fields': fields_to_get}
     )
-    print(f"Success. {len(records)} products found.")
+    logger.info(f"Success. {len(records)} products found.")
 
 except Exception as e:
-    print(f"Critical ERROR during query: {e}")
+    logger.error(f"Critical ERROR during query", exc_info=True)
     exit()
 
 if records:
@@ -113,7 +120,7 @@ if records:
     ]
     
     df_unique = df_renamed.drop_duplicates(subset=columns_for_uniqueness)
-    print(f"Unique combinations found: {len(df_unique)}")
+    logger.info(f"Unique combinations found: {len(df_unique)}")
     
     df_final = df_unique.copy()
     try:
@@ -122,16 +129,16 @@ if records:
         if 'Type of product' in df_modifiers.columns and 'Search Modifiers' in df_modifiers.columns:
             df_final = pd.merge(df_unique, df_modifiers[['Type of product', 'Search Modifiers']], on='Type of product', how='left')
             df_final['Search Modifiers'] = df_final['Search Modifiers'].fillna('')
-            print("Combination with Search Modifiers successful.")
+            logger.info("Combination with Search Modifiers successful.")
         else:
-            print(f"WARNING: The file '{MODIFIERS_FILE}' must have the columns 'Type of product' and 'Search Modifiers'.")
+            logger.warning(f"WARNING: The file '{MODIFIERS_FILE}' must have the columns 'Type of product' and 'Search Modifiers'.")
             df_final['Search Modifiers'] = ''
 
     except FileNotFoundError:
-        print(f"WARNING: '{MODIFIERS_FILE}' not found. Report will be generated without Search Modifiers.")
+        logger.warning(f"WARNING: '{MODIFIERS_FILE}' not found. Report will be generated without Search Modifiers.")
         df_final['Search Modifiers'] = '' 
     except Exception as e:
-        print(f"ERROR processing mapping file: {e}")
+        logger.error(f"ERROR processing mapping file", exc_info=True)
         df_final['Search Modifiers'] = ''
 
     final_columns = [
@@ -144,12 +151,12 @@ if records:
     df_to_export = df_final[final_columns]
     
     df_to_export.to_csv(OUTPUT_CSV_FILE, index=False, encoding='utf-8-sig')
-    print(f"\nSuccess! The file '{OUTPUT_CSV_FILE}' has been created with the final result.")
+    logger.info(f"\nSuccess! The file '{OUTPUT_CSV_FILE}' has been created with the final result.")
 
-    print("\nPreview of the first 5 rows of the final result:")
-    print(df_to_export.head())
+    logger.info("\nPreview of the first 5 rows of the final result:")
+    logger.info(f"\n{df_to_export.head()}")
     
 else:
-    print("No records found matching the filtering criteria.")
+    logger.warning("No records found matching the filtering criteria.")
 
-print("\nProcess completed.")
+logger.info("\nProcess completed.")

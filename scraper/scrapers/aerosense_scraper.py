@@ -9,6 +9,9 @@ import config
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
+from log_config import get_logger
+
+logger = get_logger()
 
 class AeroSenseScraper:
     def __init__(self, driver_path):
@@ -16,7 +19,7 @@ class AeroSenseScraper:
         self.base_url = "https://www.aero-sense.com/en/online-shop/cabin-and-exterior-cleaning"
     
     def _log(self, msg):
-        print(msg, flush=True)
+        logger.info(msg)
 
     def _parse_package_info(self, package_text):
         volume_ml = 0
@@ -77,7 +80,7 @@ class AeroSenseScraper:
             variation_tags = soup.select('#edit-purchased-entity-0-attributes-attribute-volume .js-form-item')
 
             if not variation_tags:
-                self._log(f"No variations found for {product_name}")
+                logger.warning(f"No variations found for {product_name}")
                 return []
 
             for variation in variation_tags:
@@ -116,7 +119,7 @@ class AeroSenseScraper:
                 products_found.append(product_data)
 
         except Exception as e:
-            print(f"An error occurred while scraping {product_url}: {e}")
+            logger.error(f"An error occurred while scraping {product_url}", exc_info=True)
         finally:
             if driver:
                 driver.quit()

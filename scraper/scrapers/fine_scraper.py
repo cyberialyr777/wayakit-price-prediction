@@ -11,6 +11,9 @@ import config
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
+from log_config import get_logger
+
+logger = get_logger()
 
 
 class FineScraper:
@@ -21,7 +24,7 @@ class FineScraper:
         self.products_to_find_limit = 6
 
     def _log(self, msg):
-        print(msg, flush=True)
+        logger.info(msg)
 
     def _safe_get_text(self, element):
         return element.get_text(strip=True) if element else None
@@ -176,7 +179,7 @@ class FineScraper:
                 details['Total quantity'] = final_data['quantity'] * multiplier
 
         except Exception as e:
-            self._log(f"      ! Error extracting details from {product_url}: {e}")
+            logger.error(f"      ! Error extracting details from {product_url}", exc_info=True)
 
         return details
 
@@ -257,7 +260,7 @@ class FineScraper:
         try:
             self.driver.get(search_url)
         except Exception as e:
-            self._log(f"    ! Error loading search URL: {e}")
+            logger.error(f"    ! Error loading search URL", exc_info=True)
             return []
 
         while len(all_found_products) < self.products_to_find_limit:
@@ -272,7 +275,7 @@ class FineScraper:
                 link_elements = self.driver.find_elements(By.CSS_SELECTOR, "div.listing-page a.display-flex")
                 num_products = len(link_elements)
                 
-                self._log(f"      -> Found {num_products} products on search page")
+                logger.debug(f"      -> Found {num_products} products on search page")
                 
                 if num_products == 0:
                     break
@@ -281,7 +284,7 @@ class FineScraper:
                     if len(all_found_products) >= self.products_to_find_limit:
                         break
                         
-                    self._log(f"      -> Processing product {i+1}/{num_products}")
+                    logger.debug(f"      -> Processing product {i+1}/{num_products}")
                         
                     try:
                         fresh_links = self.driver.find_elements(By.CSS_SELECTOR, "div.listing-page a.display-flex")
@@ -292,26 +295,26 @@ class FineScraper:
                         href = link_element.get_attribute('href')
 
                         if not self._navigate_to_product(self.driver, link_element, href):
-                            self._log(f"      -> Could not navigate to product")
+                            logger.warning(f"      -> Could not navigate to product")
                             continue
 
                         self._close_modal()
                         product_url = self.driver.current_url
                         product_details = self._extract_product_details(self.driver, product_url, search_mode)
                         
-                        self._log(f"      -> Extracted: {product_details['Product'][:50]}... | Price: {product_details['Price_SAR']} | Qty: {product_details['Total quantity']}")
+                        logger.debug(f"      -> Extracted: {product_details['Product'][:50]}... | Price: {product_details['Price_SAR']} | Qty: {product_details['Total quantity']}")
 
                         is_valid, validation_msg = self._is_valid_product(product_details)
                         if not is_valid:
-                            self._log(f"      -> Validation failed: {validation_msg}")
+                            logger.info(f"      -> Validation failed: {validation_msg}")
                             continue
 
-                        self._log(f"      -> Checking AI relevance...")
+                        logger.debug(f"      -> Checking AI relevance...")
                         if self.relevance_agent.is_relevant(product_details.get('Product'), keyword):
                             all_found_products.append(product_details)
-                            self._log(f"      -> Product found: {product_details['Product'][:60]}...")
+                            logger.info(f"      -> Product found: {product_details['Product'][:60]}...")
                         else:
-                            self._log(f"      -> AI rejected product")
+                            logger.info(f"      -> AI rejected product")
 
                     except (StaleElementReferenceException, ElementClickInterceptedException, TimeoutException):
                         continue
@@ -335,7 +338,7 @@ class FineScraper:
             except TimeoutException:
                 break
             except Exception as e:
-                self._log(f"    ! Unexpected error: {e}")
+                logger.error(f"    ! Unexpected error", exc_info=True)
                 break
         
         if self.driver:

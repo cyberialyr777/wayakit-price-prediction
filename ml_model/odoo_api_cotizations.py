@@ -6,6 +6,11 @@ import json
 import os
 import base64
 from botocore.exceptions import ClientError
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from log_config import get_logger
+
+logger = get_logger()
 
 def get_secret(secret_name, region_name="me-south-1"):
     session = boto3.session.Session()
@@ -18,7 +23,7 @@ def get_secret(secret_name, region_name="me-south-1"):
             SecretId=secret_name
         )
     except ClientError as e:
-        print(f"Error al obtener el secreto: {e}")
+        logger.error(f"Error al obtener el secreto", exc_info=True)
         raise e 
     else:
         if 'SecretString' in get_secret_value_response:
@@ -40,13 +45,13 @@ try:
     API_TOKEN = secrets.get('ODOO_API_TOKEN')
 
     if not all([ODOO_URL, ODOO_DB, ODOO_USERNAME, API_TOKEN]):
-        print("ERROR: Faltan secretos esenciales de Odoo recuperados de AWS Secrets Manager.")
+        logger.error("ERROR: Faltan secretos esenciales de Odoo recuperados de AWS Secrets Manager.")
         exit()
 
-    print(f"Secretos cargados exitosamente desde AWS Secrets Manager para DB: {ODOO_DB}")
+    logger.info(f"Secretos cargados exitosamente desde AWS Secrets Manager para DB: {ODOO_DB}")
 
 except Exception as e:
-    print(f"ERROR CRÍTICO: No se pudieron cargar los secretos. {e}")
+    logger.error(f"ERROR CRÍTICO: No se pudieron cargar los secretos.", exc_info=True)
     exit()
 
 OUTPUT_CSV_FILE = 'wayakit_cotizations.csv'
@@ -55,9 +60,9 @@ try:
     common = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/common')
     uid = common.authenticate(ODOO_DB, ODOO_USERNAME, API_TOKEN, {})
     models = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/object')
-    print(f"Autenticación exitosa. User ID (uid): {uid}")
+    logger.info(f"Autenticación exitosa. User ID (uid): {uid}")
 except Exception as e:
-    print(f"ERROR de autenticación: {e}")
+    logger.error(f"ERROR de autenticación", exc_info=True)
     exit()
 
 MODEL_NAME = 'sale.order.line'
@@ -75,7 +80,7 @@ fields_to_get = [
     'price_subtotal',
 ]
 
-print(f"\nBuscando registros en '{MODEL_NAME}' con filtro de descripción...")
+logger.info(f"\nBuscando registros en '{MODEL_NAME}' con filtro de descripción...")
 
 try:
     records = models.execute_kw(
@@ -85,10 +90,10 @@ try:
         [domain],
         {'fields': fields_to_get}
     )
-    print(f"Éxito. Se encontraron {len(records)} líneas de pedido que coinciden con el formato.")
+    logger.info(f"Éxito. Se encontraron {len(records)} líneas de pedido que coinciden con el formato.")
 
 except Exception as e:
-    print(f"ERROR crítico durante la consulta: {e}")
+    logger.error(f"ERROR crítico durante la consulta", exc_info=True)
     exit()
 
 # --- Procesamiento de datos (SECCIÓN MODIFICADA) ---
@@ -118,12 +123,12 @@ if records:
     
     # Guardar el resultado en un nuevo archivo CSV
     df_to_export.to_csv(OUTPUT_CSV_FILE, index=False, encoding='utf-8-sig')
-    print(f"\n✅ ¡Éxito! El archivo '{OUTPUT_CSV_FILE}' ha sido creado.")
+    logger.info(f"\n✅ ¡Éxito! El archivo '{OUTPUT_CSV_FILE}' ha sido creado.")
 
-    print("\n📊 Vista previa de las primeras 5 filas del resultado final:")
-    print(df_to_export.head())
+    logger.info("\n📊 Vista previa de las primeras 5 filas del resultado final:")
+    logger.info(f"\n{df_to_export.head()}")
     
 else:
-    print("No se encontraron registros que coincidan con todos los criterios de filtrado.")
+    logger.warning("No se encontraron registros que coincidan con todos los criterios de filtrado.")
 
-print("\nProceso completado.")
+logger.info("\nProceso completado.")

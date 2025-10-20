@@ -16,13 +16,16 @@ from scrapers.fine_scraper import FineScraper
 from scrapers.gogreen_scraper import GoGreenScraper 
 from scrapers.officesupply_scraper import OfficeSupplyScraper
 from scrapers.aerosense_scraper import AeroSenseScraper
+from log_config import get_logger
+
+logger = get_logger()
 
 def main():
     try:
         df_instructions = pd.read_csv(config.INSTRUCTIONS_FILE)
         df_instructions = df_instructions.dropna(subset=['Type of product', 'Sub industry'])
     except FileNotFoundError:
-        print(f"Error: El archivo de instrucciones '{config.INSTRUCTIONS_FILE}' no fue encontrado.")
+        logger.error(f"Error: Instructions file '{config.INSTRUCTIONS_FILE}' was not found.")
         return
 
     write_header = not os.path.exists(config.OUTPUT_CSV_FILE)
@@ -32,23 +35,23 @@ def main():
         if write_header:
             writer.writeheader()
 
-    print("Descargando y configurando ChromeDriver una sola vez...")
+    logger.info("Downloading and configuring ChromeDriver once...")
     try:
         driver_path = ChromeDriverManager().install()
-        print(f"ChromeDriver instalado en: {driver_path}")
+        logger.info(f"ChromeDriver installed at: {driver_path}")
     except Exception as e:
-        print(f"Error fatal: No se pudo instalar ChromeDriver. {e}")
+        logger.error(f"Fatal error: Could not install ChromeDriver.", exc_info=True)
         return
 
     for industry_to_scrape in config.TARGET_MAP.keys():
-        print(f"\n=================================================")
-        print(f"  INICIANDO PROCESO PARA LA SUBINDUSTRIA: '{industry_to_scrape}'")
-        print(f"=================================================\n")
+        logger.info(f"\n=================================================")
+        logger.info(f"  INICIANDO PROCESO PARA LA SUBINDUSTRIA: '{industry_to_scrape}'")
+        logger.info(f"=================================================\n")
 
         df_industry_instructions = df_instructions[df_instructions['Sub industry'] == industry_to_scrape].copy()
 
         if df_industry_instructions.empty:
-            print(f"  -> No se encontraron productos para la subindustria '{industry_to_scrape}'. Saltando a la siguiente.")
+            logger.warning(f"  -> No products found for subindustry '{industry_to_scrape}'. Skipping to next.")
             continue
 
         ai_agent = RelevanceAgent()
@@ -99,9 +102,9 @@ def main():
             
             search_mode = 'units' if any(keyword in original_type_of_product_lower for keyword in ['wipes', 'rags', 'microfiber', 'brush']) else 'volume'
 
-            print(f">> Buscando '{base_keyword}' para '{sub_industry}' (Modo: {search_mode})")
+            logger.info(f">> Buscando '{base_keyword}' para '{sub_industry}' (Modo: {search_mode})")
             for site, kword in site_specific_keywords.items():
-                print(f"   -> {site.capitalize()} usará el término específico: '{kword}'")
+                logger.debug(f"   -> {site.capitalize()} usará el término específico: '{kword}'")
 
             sites_to_scrape = config.TARGET_MAP.get(sub_industry, []).copy()
             
@@ -119,10 +122,10 @@ def main():
                     for keyword_to_use in keywords_to_use:
                         if site_name in ['fine', 'gogreen', 'officesupply', 'aerosense']:
                              if site_name not in site_specific_keywords:
-                                print(f"   -> Saltando '{site_name}' porque no se proveyó una etiqueta específica (ej. '{site_name}:...')")
+                                logger.debug(f"   -> Saltando '{site_name}' porque no se proveyó una etiqueta específica (ej. '{site_name}:...')")
                                 continue
                         
-                        print(f"   -> Buscando en '{site_name}' con la palabra clave: '{keyword_to_use}'")
+                        logger.info(f"   -> Buscando en '{site_name}' con la palabra clave: '{keyword_to_use}'")
                         found_products = scraper.scrape(keyword_to_use, search_mode)
                         
                         b2c_subindustries = ['home', 'automotive', 'pets']
@@ -145,27 +148,27 @@ def main():
                                 'channel': channel_value,
                             }
                             all_found_products.append(row_data)
-                            print(f"    -> GUARDADO: {product.get('Product', 'N/A')[:60]}... (Fuente: {site_name})")
+                            logger.info(f"    -> SAVED: {product.get('Product', 'N/A')[:60]}... (Source: {site_name})")
                 else:
-                    print(f"   -> Advertencia: No se encontró scraper para el sitio '{site_name}'.")
+                    logger.warning(f"   -> Warning: Scraper not found for site '{site_name}'.")
 
         if all_found_products:
-            print(f"\n--- Guardando {len(all_found_products)} productos encontrados para la industria '{industry_to_scrape}' ---")
+            logger.info(f"\n--- Saving {len(all_found_products)} products found for industry '{industry_to_scrape}' ---")
             try:
                 with open(config.OUTPUT_CSV_FILE, 'a', newline='', encoding='utf-8') as f:
                     writer = csv.DictWriter(f, fieldnames=config.CSV_COLUMNS)
                     writer.writerows(all_found_products)
-                print(f"  -> ¡Éxito! Datos añadidos a '{config.OUTPUT_CSV_FILE}'.")
+                logger.info(f"  -> Success! Data added to '{config.OUTPUT_CSV_FILE}'.")
             except IOError as e:
-                print(f"  -> Error al escribir en el archivo CSV: {e}")
+                logger.error(f"  -> Error writing to CSV file", exc_info=True)
         else:
-            print(f"\n--- No se encontraron productos para guardar en la industria '{industry_to_scrape}'. ---")
+            logger.info(f"\n--- No products found to save for industry '{industry_to_scrape}'. ---")
 
-        print(f"\n  -> Proceso para '{industry_to_scrape}' completado.")
-        print("  -> Descansando 10 segundos antes de la siguiente industria...")
+        logger.info(f"\n  -> Process for '{industry_to_scrape}' completed.")
+        logger.info("  -> Resting 10 seconds before next industry...")
         time.sleep(10)
 
-    print("\n\n--- PROCESO COMPLETO PARA TODAS LAS INDUSTRIAS ---")
+    logger.info("\n\n--- COMPLETE PROCESS FOR ALL INDUSTRIES ---")
 
 if __name__ == "__main__":
     try:
@@ -176,5 +179,5 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         import traceback
-        print(f"[FATAL] Unhandled exception: {e}", flush=True)
+        logger.error(f"[FATAL] Unhandled exception", exc_info=True)
         traceback.print_exc()

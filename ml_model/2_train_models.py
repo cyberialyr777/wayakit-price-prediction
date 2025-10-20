@@ -3,20 +3,27 @@ import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 import joblib
 import os
+import sys
+
+# Añadir el directorio raíz al path para poder importar log_config
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from log_config import get_logger
+
+logger = get_logger(__name__)
 
 def load_training_data():
-    """Carga todos los archivos CSV necesarios para el entrenamiento."""
-    print("--- 1. Cargando archivos base ---")
+    """Loads all CSV files necessary for training."""
+    logger.info("--- 1. Loading base files ---")
     df_quotes_raw = pd.read_csv('wayakit_cotizations.csv')
     df_wayakit_products = pd.read_csv('wayakit_products_to_predict_odoo.csv')
     df_vol_comp = pd.read_csv('competitor_volumetric_processed.csv')
     df_unit_comp = pd.read_csv('competitor_unit_processed.csv')
-    print("✅ Archivos cargados.")
+    logger.info("✅ Files loaded.")
     return df_quotes_raw, df_wayakit_products, df_vol_comp, df_unit_comp
 
 def prepare_wayakit_training_data(df_quotes_raw, df_wayakit_products):
-    """Prepara los datos históricos de cotizaciones de Wayakit."""
-    print("\n--- 2. Preparando datos de cotizaciones de Wayakit ---")
+    """Prepares Wayakit's historical quotation data."""
+    logger.info("--- 2. Preparing Wayakit quotation data ---")
     df_quotes_raw.columns = df_quotes_raw.columns.str.strip()
     df_wayakit_products.columns = df_wayakit_products.columns.str.strip()
     
@@ -31,43 +38,43 @@ def prepare_wayakit_training_data(df_quotes_raw, df_wayakit_products):
     b2c_conditions = ['Home', 'Automotive', 'Pets']
     df_wayakit_train_base['channel'] = np.where(df_wayakit_train_base['subindustry'].isin(b2c_conditions), 'B2C', 'B2B')
     
-    print(f"✅ Se prepararon {len(df_wayakit_train_base)} cotizaciones de Wayakit.")
+    logger.info(f"✅ Prepared {len(df_wayakit_train_base)} Wayakit quotations.")
     return df_wayakit_train_base
 
 def filter_outliers_with_percentiles(df_comp, metric_col, p_lower=0.10, p_upper=0.90):
     """
-    Filtra los datos de la competencia para eliminar outliers usando percentiles.
-    Esta es tu lógica de manejo de cuantiles.
+    Filters competitor data to remove outliers using percentiles.
+    This is your quantile handling logic.
     """
-    print(f"\n--- 3. Filtrando outliers para '{metric_col}' usando percentiles {p_lower}-{p_upper} ---")
+    logger.info(f"--- 3. Filtering outliers for '{metric_col}' using percentiles {p_lower}-{p_upper} ---")
     lower_bound = df_comp.groupby('type_of_product')[metric_col].transform('quantile', p_lower)
     upper_bound = df_comp.groupby('type_of_product')[metric_col].transform('quantile', p_upper)
     
     original_rows = len(df_comp)
     df_cleaned = df_comp[(df_comp[metric_col] >= lower_bound) & (df_comp[metric_col] <= upper_bound)].copy()
     
-    print(f"Filas antes: {original_rows} | Filas después: {len(df_cleaned)}")
+    logger.info(f"Filas antes: {original_rows} | Filas después: {len(df_cleaned)}")
     df_cleaned['approved_quote_price'] = 0.0
     return df_cleaned
 
 def main():
     """
-    Orquesta todo el proceso de entrenamiento: carga, preparación,
-    entrenamiento y guardado de modelos.
+    Orchestrates the entire training process: loading, preparation,
+    training and saving models.
     """
     try:
-        # Carga de datos
+        # Data loading
         df_quotes, df_products, df_vol_comp, df_unit_comp = load_training_data()
 
-        # Preparación de datos de Wayakit
+        # Wayakit data preparation
         df_wayakit_base = prepare_wayakit_training_data(df_quotes, df_products)
 
-        # **AQUÍ ESTÁ TU LÓGICA DE PERCENTILES, INTACTA**
+        # **HERE IS YOUR PERCENTILE LOGIC, INTACT**
         df_vol_comp_cleaned = filter_outliers_with_percentiles(df_vol_comp, 'price_per_liter')
         df_unit_comp_cleaned = filter_outliers_with_percentiles(df_unit_comp, 'price_per_item')
 
-        # --- Transformación y combinación de datos (tu lógica original) ---
-        print("\n--- 4. Combinando datos de Wayakit y competencia para el entrenamiento ---")
+        # --- Data transformation and combination (your original logic) ---
+        logger.info("--- 4. Combining Wayakit and competitor data for training ---")
         cols_vol = ['industry', 'subindustry', 'type_of_product', 'generic_product_type', 'price_sar', 'company', 'unit_of_measurement', 'channel', 'volume_liters', 'price_per_liter', 'approved_quote_price']
         cols_unit = ['industry', 'subindustry', 'type_of_product', 'generic_product_type', 'price_sar', 'company', 'unit_of_measurement', 'total_quantity', 'channel', 'price_per_item', 'approved_quote_price']
 
@@ -90,11 +97,11 @@ def main():
         df_train_vol = pd.concat([df_vol_comp_cleaned[cols_vol], df_wayakit_vol_train_final], ignore_index=True)
         df_train_unit = pd.concat([df_unit_comp_cleaned[cols_unit], df_wayakit_unit_train_final], ignore_index=True)
         
-        print(f"Total datos para entrenamiento volumétrico: {len(df_train_vol)} filas.")
-        print(f"Total datos para entrenamiento de unidades: {len(df_train_unit)} filas.")
+        logger.info(f"Total data for volumetric training: {len(df_train_vol)} rows.")
+        logger.info(f"Total data for unit training: {len(df_train_unit)} rows.")
 
-        # --- Entrenamiento y guardado de modelos (tu lógica original) ---
-        print("\n--- 5. Entrenando y guardando modelos ---")
+        # --- Model training and saving (your original logic) ---
+        logger.info("--- 5. Training and saving models ---")
         features_vol = ['volume_liters', 'type_of_product', 'subindustry', 'channel', 'approved_quote_price']
         X_vol_encoded = pd.get_dummies(df_train_vol[features_vol].fillna('Desconocido'), columns=['type_of_product', 'subindustry', 'channel'], drop_first=True)
         model_vol = RandomForestRegressor(n_estimators=100, random_state=42, min_samples_leaf=2, oob_score=True).fit(X_vol_encoded, df_train_vol['price_per_liter'])
@@ -110,10 +117,10 @@ def main():
         joblib.dump(model_unit, os.path.join(model_dir, 'unit_model.joblib'))
         joblib.dump(X_unit_encoded.columns.tolist(), os.path.join(model_dir, 'unit_model_columns.joblib'))
         
-        print("\n🎉 Modelos y columnas guardados exitosamente.")
+        logger.info("🎉 Models and columns successfully saved.")
 
     except Exception as e:
-        print(f"❌ Ocurrió un error en el proceso de entrenamiento: {e}")
+        logger.error("Error occurred in training process", exc_info=True)
 
 if __name__ == "__main__":
     main()

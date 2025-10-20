@@ -1,8 +1,16 @@
 import pandas as pd
 import numpy as np
+import os
+import sys
+
+# Añadir el directorio raíz al path para poder importar log_config
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from log_config import get_logger
+
+logger = get_logger(__name__)
 
 def load_and_clean_raw_data():
-    print("--- 1. Cargando y limpiando datos crudos de la competencia ---")
+    logger.info("--- 1. Loading and cleaning raw competitor data ---")
     df_test4 = pd.read_csv('../scraper/competitors_complete.csv')
     df_prod = pd.read_csv('wayakit_products_competition.csv')
 
@@ -26,16 +34,16 @@ def load_and_clean_raw_data():
     df_prod_clean['unit_of_measurement'] = clean_units(df_prod_clean['unit_of_measurement'])
     
     competitor_data = pd.concat([df_test4_clean, df_prod_clean], ignore_index=True)
-    print(f"✅ Datos crudos combinados. Total: {len(competitor_data)} filas.")
+    logger.info(f"✅ Raw data combined. Total: {len(competitor_data)} rows.")
     return competitor_data
 
 def process_volumetric_data(df):
-    print("\n--- 2a. Procesando productos volumétricos ---")
+    logger.info("--- 2a. Processing volumetric products ---")
     df['unit_of_measurement'] = df['unit_of_measurement'].str.lower().str.strip()
     
     original_rows = len(df)
     df = df[df['unit_of_measurement'] != 'g']
-    print(f"Se excluyeron {original_rows - len(df)} productos medidos en gramos.")
+    logger.info(f"Excluded {original_rows - len(df)} products measured in grams.")
 
     def convert_to_liters(row):
         if row['unit_of_measurement'] == 'ml': return row['total_quantity'] / 1000
@@ -50,10 +58,10 @@ def process_volumetric_data(df):
     df.dropna(subset=['price_per_liter'], inplace=True)
     
     df.to_csv('competitor_volumetric_processed.csv', index=False)
-    print("✅ Archivo 'competitor_volumetric_processed.csv' guardado.")
+    logger.info("✅ File 'competitor_volumetric_processed.csv' saved.")
 
 def process_unit_data(df):
-    print("\n--- 2b. Procesando productos por unidad ---")
+    logger.info("--- 2b. Processing unit products ---")
     df['total_quantity'] = pd.to_numeric(df['total_quantity'], errors='coerce')
     df.dropna(subset=['total_quantity'], inplace=True)
     df = df[df['total_quantity'] > 0]
@@ -63,7 +71,7 @@ def process_unit_data(df):
     df.dropna(subset=['price_per_item'], inplace=True)
     
     df.to_csv('competitor_unit_processed.csv', index=False)
-    print("✅ Archivo 'competitor_unit_processed.csv' guardado.")
+    logger.info("✅ File 'competitor_unit_processed.csv' saved.")
 
 def main():
     try:
@@ -75,12 +83,12 @@ def main():
         process_volumetric_data(competitor_data[is_volumetric].copy())
         process_unit_data(competitor_data[~is_volumetric].copy())
         
-        print("\n🎉 Preprocesamiento de datos de la competencia completado.")
+        logger.info("🎉 Competitor data preprocessing completed.")
         
     except FileNotFoundError as e:
-        print(f"\n❌ ERROR: No se encontró el archivo. {e}")
+        logger.error("Required file not found", exc_info=True)
     except Exception as e:
-        print(f"\n❌ Ocurrió un error inesperado: {e}")
+        logger.error("Unexpected error occurred during preprocessing", exc_info=True)
 
 if __name__ == "__main__":
     main()

@@ -8,6 +8,9 @@ import config
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
+from log_config import get_logger
+
+logger = get_logger()
 
 class AmazonScraper:
     def __init__(self, driver_path, relevance_agent):
@@ -16,7 +19,7 @@ class AmazonScraper:
         self.base_url = "https://www.amazon.sa"
 
     def _log(self, msg):
-        print(msg, flush=True)
+        logger.info(msg)
 
     def _safe_get_text(self, element):
         return element.get_text(strip=True) if element else None
@@ -61,13 +64,13 @@ class AmazonScraper:
             is_wipes_or_rags = ('wipes' in kw) or ('rags' in kw)
 
             if is_wipes_or_rags:
-                self._log("      -> Wipes/Rags detected. Using AI for unit count...")
+                logger.debug("      -> Wipes/Rags detected. Using AI for unit count...")
                 ai_units = self.relevance_agent.extract_wipes_units(raw_title)
                 if ai_units > 0:
                     details['Total quantity'] = ai_units
                     details['Validation_Status'] = 'AI Wipes Units'
             else:
-                self._log("      -> Other units detected. Using local parser...")
+                logger.debug("      -> Other units detected. Using local parser...")
                 p_title = parse_count_string(raw_title)
                 if p_title:
                     details['Total quantity'] = p_title['quantity']
@@ -79,7 +82,7 @@ class AmazonScraper:
             tech_fields = self._extract_from_table(soup, 'productDetails_techSpec_section_1', ['volume', 'weight'])
             item_volume_row = soup.find('tr', class_='po-item_volume')
             raw_item_volume = self._safe_get_text(item_volume_row.find('span', class_='po-break-word')) if item_volume_row else None
-            self._log(f"      [Debug] -> Vol: '{tech_fields['volume']}', ItemVol: '{raw_item_volume}'")
+            logger.debug(f"      [Debug] -> Vol: '{tech_fields['volume']}', ItemVol: '{raw_item_volume}'")
 
             p_title = parse_volume_string(raw_title)
             p_volume = parse_volume_string(tech_fields['volume'])
@@ -106,9 +109,9 @@ class AmazonScraper:
                         break
         
         if details.get('Total quantity', 0) > 0:
-            self._log(f"      [Extractor] ✅ Quantity found: {details['Total quantity']} {details['Unit of measurement']} (Source: {details['Validation_Status']})")
+            logger.debug(f"      [Extractor] ✅ Quantity found: {details['Total quantity']} {details['Unit of measurement']} (Source: {details['Validation_Status']})")
         else:
-            self._log("      [Extractor] ❌ No valid quantity found on page.")
+            logger.debug("      [Extractor] ❌ No valid quantity found on page.")
             
         return details
     
@@ -161,7 +164,7 @@ class AmazonScraper:
                         EC.presence_of_element_located((By.CLASS_NAME, "po-item_volume"))
                     ))
                 except Exception:
-                    self._log("      ! Details section not found, skipping.")
+                    logger.warning("      ! Details section not found, skipping.")
                     continue
                 
                 product_soup = BeautifulSoup(driver.page_source, 'html.parser')
@@ -171,7 +174,7 @@ class AmazonScraper:
                 product_title = product_details.get('Product')
 
                 if not product_title:
-                    self._log(f"      -> DISCARDED (No title found)")
+                    logger.warning(f"      -> DISCARDED (No title found)")
                     continue
 
                 if product_details.get('Total quantity', 0) > 0:
@@ -180,14 +183,14 @@ class AmazonScraper:
 
                     if is_relevant:
                         found_products.append(product_details)
-                        self._log(f"      -> ✅ RELEVANT & VALID. Product saved.")
+                        logger.info(f"      -> ✅ RELEVANT & VALID. Product saved.")
                     else:
-                        self._log(f"      -> DISCARDED (Not relevant by AI): {product_title[:60]}...")
+                        logger.info(f"      -> DISCARDED (Not relevant by AI): {product_title[:60]}...")
                 else:
-                    self._log(f"      -> DISCARDED (No quantity found by extractor): {product_title[:60]}...")
+                    logger.info(f"      -> DISCARDED (No quantity found by extractor): {product_title[:60]}...")
                 
         except Exception as e:
-            self._log(f"      ! Unexpected error occurred in Amazon scraper: {e}")
+            logger.error(f"      ! Unexpected error occurred in Amazon scraper", exc_info=True)
         finally:
             if driver:
                 driver.quit()
