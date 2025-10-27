@@ -104,6 +104,7 @@ fields_to_get = [
     'shipping_cost',
     'other_costs',
     'unit_cost_sar',
+    'create_date',
 ]
 
 logger.info(f"\n🔎 Buscando registros en el modelo '{MODEL_NAME}'...")
@@ -135,6 +136,7 @@ if records:
 
     # Mapeo de los nombres de campo de Odoo a los nombres de columna deseados en el CSV
     column_mapping = {
+        'create_date': 'create_date',
         'product_id': 'Product_ID',
         'product_name': 'Product_Name',
         'label_product_name': 'Label_Product_Name',
@@ -161,7 +163,7 @@ if records:
 
     # Definir el orden final de las columnas para el archivo CSV
     final_columns_order = [
-        'Product_ID', 'Product_Name', 'Label_Product_Name', 'Presentation', 
+        'create_date', 'Product_ID', 'Product_Name', 'Label_Product_Name', 'Presentation', 
         'Volume_Liters', 'Pack_quantity_Units', 'Type_of_product', 'Category', 
         'Generic product type', 'SubIndustry', 'Industry', 'Bottle', 'Label', 
         'Liquid', 'Microfibers', 'Plastic bag', 'Labor', 'Shipping', 

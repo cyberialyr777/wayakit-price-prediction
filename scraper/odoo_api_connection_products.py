@@ -1,27 +1,23 @@
 import xmlrpc.client
 import os
-from aiohttp import ClientError
 import pandas as pd
+import argparse
 import boto3
 import json
 import base64
+from botocore.exceptions import ClientError
 from log_config import get_logger
 
 logger = get_logger()
 
 def get_secret(secret_name, region_name="me-south-1"):
     session = boto3.session.Session()
-    client = session.client(
-        service_name='secretsmanager',
-        region_name=region_name
-    )
+    client = session.client(service_name='secretsmanager', region_name=region_name)
     try:
-        get_secret_value_response = client.get_secret_value(
-            SecretId=secret_name
-        )
+        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
     except ClientError as e:
-        logger.error(f"Error al obtener el secreto", exc_info=True)
-        raise e 
+        logger.error(f"Error al obtener el secreto '{secret_name}': {e}", exc_info=True)
+        raise e
     else:
         if 'SecretString' in get_secret_value_response:
             secret = get_secret_value_response['SecretString']
@@ -30,133 +26,105 @@ def get_secret(secret_name, region_name="me-south-1"):
             decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
             return json.loads(decoded_binary_secret)
 
-SECRET_NAME = "wayakit/test/credentials" 
-AWS_REGION = "me-south-1" 
 
+parser = argparse.ArgumentParser(description="Genera la lista de productos/subindustrias para scraping.")
+parser.add_argument('--input_odoo_products_file', default='../ml/wayakit_products.csv',
+                    help="Archivo CSV de entrada con productos de Odoo (ej. wayakit_products.csv o wayakit_new_products_temp.csv).")
+parser.add_argument('--output_analysis_file', default='analysis-odoo.csv',
+                    help="Archivo CSV de salida para el scraper (ej. analysis-odoo.csv o analysis-odoo_partial.csv).")
+parser.add_argument('--modifiers_file', default='modifiers_mapping.csv',
+                    help="Archivo CSV con mapeo de modificadores de búsqueda.")
+args = parser.parse_args()
+
+SECRET_NAME = "wayakit/test/credentials"
+AWS_REGION = "me-south-1"
 try:
     secrets = get_secret(SECRET_NAME, AWS_REGION)
-
     ODOO_URL = secrets.get('ODOO_URL')
     ODOO_DB = secrets.get('ODOO_DB')
     ODOO_USERNAME = secrets.get('ODOO_USERNAME')
     API_TOKEN = secrets.get('ODOO_API_TOKEN')
-
     if not all([ODOO_URL, ODOO_DB, ODOO_USERNAME, API_TOKEN]):
-        logger.error("ERROR: Faltan secretos esenciales de Odoo recuperados de AWS Secrets Manager.")
-        exit()
-
-    logger.info(f"Secretos cargados exitosamente desde AWS Secrets Manager para DB: {ODOO_DB}")
-
+        logger.error("Faltan secretos esenciales de Odoo recuperados.")
+        exit(1)
+    logger.info(f"Secretos cargados para DB: {ODOO_DB}")
 except Exception as e:
-    logger.error(f"ERROR CRÍTICO: No se pudieron cargar los secretos.", exc_info=True)
-    exit()
+    logger.critical(f"No se pudieron cargar los secretos.", exc_info=True)
+    exit(1)
+
+INPUT_ODOO_FILE = args.input_odoo_products_file
+OUTPUT_ANALYSIS_FILE = args.output_analysis_file
+MODIFIERS_FILE = args.modifiers_file
 
 try:
     common = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/common')
     uid = common.authenticate(ODOO_DB, ODOO_USERNAME, API_TOKEN, {})
     models = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/object')
-    logger.info(f"Authentication successful. User ID (uid): {uid}")
+    logger.info(f"Autenticación Odoo exitosa. UID: {uid}")
 except Exception as e:
-    logger.error(f"Authentication ERROR", exc_info=True)
-    exit()
+    logger.error(f"Error de autenticación Odoo.", exc_info=True)
+    exit(1)
 
-MODEL_NAME = 'product.master'
-
-# Definir archivos de entrada y salida
-MODIFIERS_FILE = 'modifiers_mapping.csv'
-OUTPUT_CSV_FILE = 'analysis-odoo.csv'
-
-products_to_exclude = [
-    'F12-Other consumables for FM',
-    'P11-Other consumables for pets',
-    'H13-Other products, consumables or kits for homes'
-]
-
-domain = [
-    ['status', '=', 'active'],
-    ['subindustry_id.name', 'not in', ['Maritime', 'Defense']],
-    ['type_of_product', 'not in', products_to_exclude]
-]
-
-fields_to_get = [
-    'type_of_product',
-    'subindustry_id',
-    'industry_id',
-    'generic_product_type',
-]
-
-logger.info(f"\nSearching records in '{MODEL_NAME}' with advanced filters...")
-
+logger.info(f"Leyendo archivo de productos Odoo: '{INPUT_ODOO_FILE}'")
 try:
-    records = models.execute_kw(
-        ODOO_DB, uid, API_TOKEN,
-        MODEL_NAME,
-        'search_read',
-        [domain],
-        {'fields': fields_to_get}
-    )
-    logger.info(f"Success. {len(records)} products found.")
+    df_odoo_products = pd.read_csv(INPUT_ODOO_FILE)
+    logger.info(f"Leídos {len(df_odoo_products)} productos desde '{INPUT_ODOO_FILE}'.")
 
-except Exception as e:
-    logger.error(f"Critical ERROR during query", exc_info=True)
-    exit()
-
-if records:
-    
-    df = pd.DataFrame(records)
-    df['subindustry_id'] = df['subindustry_id'].apply(lambda x: x[1] if isinstance(x, list) else None)
-    df['industry_id'] = df['industry_id'].apply(lambda x: x[1] if isinstance(x, list) else None)
-    
     column_mapping = {
-        'type_of_product': 'Type of product',
-        'subindustry_id': 'Sub industry',
-        'industry_id': 'Industry',
-        'generic_product_type': 'Generic product type'
+        'Type_of_product': 'Type of product',
+        'SubIndustry': 'Sub industry',
+        'Industry': 'Industry',
+        'Generic product type': 'Generic product type'
     }
-    df_renamed = df.rename(columns=column_mapping)
-    
+    df_renamed = df_odoo_products.rename(columns=column_mapping)
+
     columns_for_uniqueness = [
         'Type of product', 'Sub industry', 'Industry', 'Generic product type'
     ]
-    
+    missing_cols = [col for col in columns_for_uniqueness if col not in df_renamed.columns]
+    if missing_cols:
+        logger.error(f"Faltan columnas requeridas en '{INPUT_ODOO_FILE}': {missing_cols}")
+        exit(1)
+
     df_unique = df_renamed.drop_duplicates(subset=columns_for_uniqueness)
-    logger.info(f"Unique combinations found: {len(df_unique)}")
-    
+    logger.info(f"Combinaciones únicas encontradas: {len(df_unique)}")
+
     df_final = df_unique.copy()
     try:
         df_modifiers = pd.read_csv(MODIFIERS_FILE)
-
         if 'Type of product' in df_modifiers.columns and 'Search Modifiers' in df_modifiers.columns:
-            df_final = pd.merge(df_unique, df_modifiers[['Type of product', 'Search Modifiers']], on='Type of product', how='left')
-            df_final['Search Modifiers'] = df_final['Search Modifiers'].fillna('')
-            logger.info("Combination with Search Modifiers successful.")
-        else:
-            logger.warning(f"WARNING: The file '{MODIFIERS_FILE}' must have the columns 'Type of product' and 'Search Modifiers'.")
-            df_final['Search Modifiers'] = ''
+            df_final['Type of product'] = df_final['Type of product'].astype(str)
+            df_modifiers['Type of product'] = df_modifiers['Type of product'].astype(str)
 
+            df_final = pd.merge(df_final, df_modifiers[['Type of product', 'Search Modifiers']], on='Type of product', how='left')
+            df_final['Search Modifiers'] = df_final['Search Modifiers'].fillna('')
+            logger.info("Combinación con Search Modifiers exitosa.")
+        else:
+            logger.warning(f"El archivo '{MODIFIERS_FILE}' debe tener 'Type of product' y 'Search Modifiers'. No se añadirán modificadores.")
+            df_final['Search Modifiers'] = ''
     except FileNotFoundError:
-        logger.warning(f"WARNING: '{MODIFIERS_FILE}' not found. Report will be generated without Search Modifiers.")
-        df_final['Search Modifiers'] = '' 
+        logger.warning(f"'{MODIFIERS_FILE}' no encontrado. No se añadirán modificadores.")
+        df_final['Search Modifiers'] = ''
     except Exception as e:
-        logger.error(f"ERROR processing mapping file", exc_info=True)
+        logger.error(f"Error procesando archivo de modificadores '{MODIFIERS_FILE}'.", exc_info=True)
         df_final['Search Modifiers'] = ''
 
     final_columns = [
-        'Type of product',
-        'Sub industry',
-        'Industry',
-        'Generic product type',
-        'Search Modifiers'
+        'Type of product', 'Sub industry', 'Industry', 'Generic product type', 'Search Modifiers'
     ]
-    df_to_export = df_final[final_columns]
-    
-    df_to_export.to_csv(OUTPUT_CSV_FILE, index=False, encoding='utf-8-sig')
-    logger.info(f"\nSuccess! The file '{OUTPUT_CSV_FILE}' has been created with the final result.")
+    final_columns_exist = [col for col in final_columns if col in df_final.columns]
+    df_to_export = df_final[final_columns_exist] 
 
-    logger.info("\nPreview of the first 5 rows of the final result:")
-    logger.info(f"\n{df_to_export.head()}")
-    
-else:
-    logger.warning("No records found matching the filtering criteria.")
+    df_to_export.to_csv(OUTPUT_ANALYSIS_FILE, index=False, encoding='utf-8-sig')
+    logger.info(f"¡Éxito! Archivo de análisis generado: '{OUTPUT_ANALYSIS_FILE}'")
+    logger.info("Vista previa:")
+    logger.info("\n" + df_to_export.head().to_string()) 
 
-logger.info("\nProcess completed.")
+except FileNotFoundError:
+    logger.error(f"Archivo de entrada '{INPUT_ODOO_FILE}' no encontrado.")
+    exit(1)
+except Exception as e:
+    logger.critical(f"Error inesperado procesando productos.", exc_info=True)
+    exit(1)
+
+logger.info("Proceso completado.")
