@@ -25,7 +25,7 @@ class SacoScraper:
 
     def _handle_overlays(self, driver):
         try:
-            cookie_accept_button = WebDriverWait(driver, 5).until(
+            cookie_accept_button = WebDriverWait(driver, 15).until(
                 EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Accept')]"))
             )
             logger.info("    > Cookie banner detected. Clicking 'Accept'.")
@@ -38,7 +38,7 @@ class SacoScraper:
     def _extract_product_details(self, driver, product_url, search_mode):
         logger.debug(f"        -> Extracting details from: {product_url}")
         driver.get(product_url)
-        WebDriverWait(driver, 15).until(
+        WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "h1.product-title"))
         )
         soup = BeautifulSoup(driver.page_source, 'html.parser')
@@ -88,14 +88,14 @@ class SacoScraper:
         
         all_found_products = []
         page_num = 1
-        products_to_find_limit = 9
+        products_to_find_limit = 1
 
         service = ChromeService(executable_path=self.driver_path)
         options = webdriver.ChromeOptions()
         options.add_experimental_option('excludeSwitches', ['enable-automation'])
         options.add_experimental_option('useAutomationExtension', False)
         options.add_argument('--disable-notifications')
-        options.add_argument('--headless')
+        # options.add_argument('--headless')
         options.add_argument('--disable-gpu')
         options.add_argument('--disable-webgl')
         options.add_argument('--disable-3d-apis')
@@ -113,7 +113,7 @@ class SacoScraper:
         self._handle_overlays(driver)
 
         try:
-            WebDriverWait(driver, 15).until(
+            WebDriverWait(driver, 25).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "div.product-inner-container"))
             )
         except TimeoutException:
@@ -166,7 +166,7 @@ class SacoScraper:
                     time.sleep(1)
                     product_link.click()
 
-                    WebDriverWait(driver, 15).until(
+                    WebDriverWait(driver, 30).until(
                         EC.presence_of_element_located((By.CSS_SELECTOR, "h1.product-title"))
                     )
                     
@@ -184,7 +184,7 @@ class SacoScraper:
                         logger.info(f"      -> DISCARDED (no quantity): {product_details.get('Product', 'N/A')[:60]}...")
 
                     driver.get(search_page_url)
-                    WebDriverWait(driver, 20).until(
+                    WebDriverWait(driver, 30).until(
                         EC.presence_of_element_located((By.CSS_SELECTOR, "div.product-inner-container"))
                     )
                     time.sleep(2)
@@ -192,7 +192,7 @@ class SacoScraper:
                 except (TimeoutException, StaleElementReferenceException, ElementClickInterceptedException) as e:
                     logger.warning(f"      -> WARNING: Could not process product {i+1}. Skipping. Reason: {type(e).__name__}")
                     driver.get(search_page_url)
-                    WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.product-inner-container")))
+                    WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.product-inner-container")))
                     continue
                 except InvalidSessionIdException:
                     logger.error(f"      -> FATAL ERROR: Browser session lost. Aborting scrape for '{keyword}'.")

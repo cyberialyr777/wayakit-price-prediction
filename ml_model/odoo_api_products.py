@@ -1,6 +1,6 @@
 import xmlrpc.client
 import os
-from aiohttp import ClientError
+from botocore.exceptions import ClientError
 import pandas as pd
 import boto3
 import json
@@ -54,7 +54,7 @@ except Exception as e:
     exit()
 
 # Nombre del archivo de salida
-OUTPUT_CSV_FILE = 'wayakit_products.csv'
+OUTPUT_CSV_FILE = 'ml_model/wayakit_products.csv'
 
 # --- 2. AUTENTICACIÓN CON ODOO ---
 try:
@@ -79,7 +79,7 @@ products_to_exclude = [
 domain = [
     ['status', '=', 'active'],
     ['subindustry_id.name', 'not in', ['Maritime', 'Defense']],
-    ['type_of_product', 'not in', products_to_exclude]
+    ['type_of_product_id.name', 'not in', products_to_exclude]
 ]
 
 # Campos a obtener del modelo 'product.master'
@@ -90,7 +90,7 @@ fields_to_get = [
     'presentation',
     'volume_liters',
     'pack_quantity_units',
-    'type_of_product',
+    'type_of_product_id',
     'category',
     'generic_product_type',
     'subindustry_id',
@@ -131,6 +131,7 @@ if records:
     
     # Odoo devuelve los campos Many2one como una lista [id, 'nombre'].
     # Esta función extrae solo el nombre.
+    df['type_of_product_id'] = df['type_of_product_id'].apply(lambda x: x[1] if isinstance(x, list) and len(x) > 1 else None)
     df['subindustry_id'] = df['subindustry_id'].apply(lambda x: x[1] if isinstance(x, list) else None)
     df['industry_id'] = df['industry_id'].apply(lambda x: x[1] if isinstance(x, list) else None)
 
@@ -143,7 +144,7 @@ if records:
         'presentation': 'Presentation',
         'volume_liters': 'Volume_Liters',
         'pack_quantity_units': 'Pack_quantity_Units',
-        'type_of_product': 'Type_of_product',
+        'type_of_product_id': 'Type_of_product',
         'category': 'Category',
         'generic_product_type': 'Generic product type',
         'subindustry_id': 'SubIndustry',

@@ -74,7 +74,7 @@ class MumzworldScraper:
         self._log(f"  [Mumzworld Scraper] Searching: '{keyword}' (Mode: {search_mode})")
         search_url = f"{self.base_url}search?q={quote(keyword)}"
         valid_products_found = []
-        products_to_find = 9
+        products_to_find = 1
 
         service = ChromeService(executable_path=self.driver_path)
         options = webdriver.ChromeOptions()

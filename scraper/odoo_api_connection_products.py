@@ -6,6 +6,10 @@ import boto3
 import json
 import base64
 from botocore.exceptions import ClientError
+import sys
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 from log_config import get_logger
 
 logger = get_logger()
@@ -28,11 +32,11 @@ def get_secret(secret_name, region_name="me-south-1"):
 
 
 parser = argparse.ArgumentParser(description="Genera la lista de productos/subindustrias para scraping.")
-parser.add_argument('--input_odoo_products_file', default='../ml/wayakit_products.csv',
+parser.add_argument('--input_odoo_products_file', default='../ml_model/wayakit_products.csv',
                     help="Archivo CSV de entrada con productos de Odoo (ej. wayakit_products.csv o wayakit_new_products_temp.csv).")
-parser.add_argument('--output_analysis_file', default='analysis-odoo.csv',
+parser.add_argument('--output_analysis_file', default='scraper/analysis-odoo.csv',
                     help="Archivo CSV de salida para el scraper (ej. analysis-odoo.csv o analysis-odoo_partial.csv).")
-parser.add_argument('--modifiers_file', default='modifiers_mapping.csv',
+parser.add_argument('--modifiers_file', default='scraper/modifiers_mapping.csv',
                     help="Archivo CSV con mapeo de modificadores de búsqueda.")
 args = parser.parse_args()
 

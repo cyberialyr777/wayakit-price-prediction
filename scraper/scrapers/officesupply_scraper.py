@@ -20,7 +20,7 @@ class OfficeSupplyScraper:
         self.driver_path = driver_path
         self.relevance_agent = relevance_agent
         self.base_url = "https://officesupply.sa/en/"
-        self.products_to_find_limit = 8
+        self.products_to_find_limit = 1
 
     def _log(self, msg):
         logger.info(msg)
@@ -73,7 +73,7 @@ class OfficeSupplyScraper:
             
             soup = BeautifulSoup(driver.page_source, 'html.parser')
 
-            name_tag = soup.select_one("h1 bdi")
+            name_tag = soup.select_one("div.ut2-pb__title h1")
             if name_tag:
                 product_title = name_tag.get_text(strip=True)
                 details['Product'] = product_title
@@ -125,7 +125,7 @@ class OfficeSupplyScraper:
         options.add_experimental_option('excludeSwitches', ['enable-automation'])
         options.add_experimental_option('useAutomationExtension', False)
         options.add_argument('--disable-notifications')
-        options.add_argument('--headless')
+        # options.add_argument('--headless')
         options.add_argument('--disable-gpu')
         options.add_argument('--disable-webgl')
         options.add_argument('--disable-3d-apis')

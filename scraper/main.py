@@ -188,8 +188,11 @@ import pandas as pd
 import time
 import csv
 import os  
-import re
 import sys
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+     sys.path.insert(0, project_root)
+import re
 import config
 import argparse
 from selenium import webdriver

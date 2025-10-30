@@ -1,5 +1,5 @@
 import xmlrpc.client
-from aiohttp import ClientError
+from botocore.exceptions import ClientError
 import pandas as pd
 import os
 from datetime import datetime
@@ -64,7 +64,7 @@ except Exception as e:
     logger.error(f"ERROR de autenticación", exc_info=True)
     exit()
 
-csv_file_path = 'wayakit_prediction_report.csv'
+csv_file_path = 'ml_model/wayakit_prediction_report.csv'
 try:
     df_results = pd.read_csv(csv_file_path)
     logger.info(f"Archivo CSV '{csv_file_path}' cargado. Se encontraron {len(df_results)} filas.")

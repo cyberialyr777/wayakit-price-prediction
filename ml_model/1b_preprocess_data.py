@@ -7,13 +7,13 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from log_config import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger()
 
 def generar_lista_prediccion():
-    archivo_volumetrico = 'competitor_volumetric_processed.csv'
-    archivo_unidades = 'competitor_unit_processed.csv'
-    catalogo_maestro = 'wayakit_products.csv'
-    archivo_salida = 'wayakit_products_to_predict_odoo.csv'
+    archivo_volumetrico = 'ml_model/competitor_volumetric_processed.csv'
+    archivo_unidades = 'ml_model/competitor_unit_processed.csv'
+    catalogo_maestro = 'ml_model/wayakit_products.csv'
+    archivo_salida = 'ml_model/wayakit_products_to_predict_odoo.csv'
 
     archivos_necesarios = [archivo_volumetrico, archivo_unidades, catalogo_maestro]
     for archivo in archivos_necesarios:

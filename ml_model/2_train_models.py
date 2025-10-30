@@ -9,15 +9,15 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from log_config import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger()
 
 def load_training_data():
     """Loads all CSV files necessary for training."""
     logger.info("--- 1. Loading base files ---")
-    df_quotes_raw = pd.read_csv('wayakit_cotizations.csv')
-    df_wayakit_products = pd.read_csv('wayakit_products_to_predict_odoo.csv')
-    df_vol_comp = pd.read_csv('competitor_volumetric_processed.csv')
-    df_unit_comp = pd.read_csv('competitor_unit_processed.csv')
+    df_quotes_raw = pd.read_csv('ml_model/wayakit_cotizations.csv')
+    df_wayakit_products = pd.read_csv('ml_model/wayakit_products_to_predict_odoo.csv')
+    df_vol_comp = pd.read_csv('ml_model/competitor_volumetric_processed.csv')
+    df_unit_comp = pd.read_csv('ml_model/competitor_unit_processed.csv')
     logger.info("✅ Files loaded.")
     return df_quotes_raw, df_wayakit_products, df_vol_comp, df_unit_comp
 

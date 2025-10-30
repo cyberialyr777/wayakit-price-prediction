@@ -107,6 +107,8 @@ run_command "python scraper/main.py --analysis_file '$ANALYSIS_FILE_TO_USE' --ou
 log_message "--- PASO 3: Obteniendo Cotizaciones Odoo ---"
 run_command "python ml_model/odoo_api_cotizations.py" "3. Obtener cotizaciones de Odoo" || exit 1
 
+run_command "python ml_model/odoo_api_competitor_products.py" "3.1 Obtain competitor products from Odoo" || exit 1
+
 log_message "--- PASO 4: Asegurando Productos Odoo ---"
 if [ ! -f "$ODOO_PRODUCTS_FILE" ]; then
     log_message "Archivo $ODOO_PRODUCTS_FILE no encontrado, ejecutando de nuevo."

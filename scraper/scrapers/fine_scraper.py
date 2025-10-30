@@ -21,7 +21,7 @@ class FineScraper:
         self.driver_path = driver_path
         self.relevance_agent = relevance_agent
         self.base_url = "https://ksa.finestore.com/en"
-        self.products_to_find_limit = 6
+        self.products_to_find_limit = 1
 
     def _log(self, msg):
         logger.info(msg)

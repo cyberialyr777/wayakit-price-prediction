@@ -29,9 +29,9 @@ def load_artifacts():
 def prepare_prediction_data():
     """Loads Wayakit products, cleans them and enriches with past quotation data."""
     logger.info("\n--- 2. Preparing Wayakit product list for prediction ---")
-    df_wayakit = pd.read_csv('wayakit_products_to_predict_odoo.csv')
-    df_quotes_raw = pd.read_csv('wayakit_cotizations.csv')
-    
+    df_wayakit = pd.read_csv('ml_model/wayakit_products_to_predict_odoo.csv')
+    df_quotes_raw = pd.read_csv('ml_model/wayakit_cotizations.csv')
+
     # --- ORDER CORRECTION (AS YOU SUGGESTED) ---
     # 1. Clean and rename columns BEFORE merging.
     df_wayakit.columns = df_wayakit.columns.str.strip()
@@ -115,7 +115,7 @@ def main():
     report_df = generate_predictions(df_to_predict, model_vol, model_unit, vol_cols, unit_cols)
 
     # Save and analyze final report
-    output_filename = 'wayakit_prediction_report.csv'
+    output_filename = 'ml_model/wayakit_prediction_report.csv'
     report_df.to_csv(output_filename, index=False)
     logger.info(f"\n--- 4. Final report saved as '{output_filename}' ---")
 

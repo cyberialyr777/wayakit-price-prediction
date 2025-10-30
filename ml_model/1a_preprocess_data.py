@@ -7,12 +7,12 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from log_config import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger()
 
 def load_and_clean_raw_data():
     logger.info("--- 1. Loading and cleaning raw competitor data ---")
-    df_test4 = pd.read_csv('../scraper/competitors_complete.csv')
-    df_prod = pd.read_csv('wayakit_products_competition.csv')
+    df_test4 = pd.read_csv('scraper/competitors_complete.csv')
+    df_prod = pd.read_csv('ml_model/competitor_products_from_odoo.csv')
 
     df_test4_clean = df_test4[['industry', 'subindustry', 'type_of_product', 'generic_product_type', 'price_sar', 'company', 'unit_of_measurement', 'total_quantity', 'channel']].copy()
     df_prod_clean = df_prod.rename(columns={
@@ -57,7 +57,7 @@ def process_volumetric_data(df):
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
     df.dropna(subset=['price_per_liter'], inplace=True)
     
-    df.to_csv('competitor_volumetric_processed.csv', index=False)
+    df.to_csv('ml_model/competitor_volumetric_processed.csv', index=False)
     logger.info("✅ File 'competitor_volumetric_processed.csv' saved.")
 
 def process_unit_data(df):
@@ -70,7 +70,7 @@ def process_unit_data(df):
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
     df.dropna(subset=['price_per_item'], inplace=True)
     
-    df.to_csv('competitor_unit_processed.csv', index=False)
+    df.to_csv('ml_model/competitor_unit_processed.csv', index=False)
     logger.info("✅ File 'competitor_unit_processed.csv' saved.")
 
 def main():
