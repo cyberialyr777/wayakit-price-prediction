@@ -143,13 +143,13 @@
 
 #!/bin/bash
 
-PROJECT_DIR="/home/ubuntu/wayakit-price-prediction" 
+PROJECT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd ) 
 CONDA_ENV_NAME="wayakit_env" 
 LOG_DIR="$PROJECT_DIR/logs"
 LAST_FULL_RUN_FILE="$LOG_DIR/last_full_run.txt"
-SCRIPT_LOG_FILE="$PROJECT_DIR/logs/pipeline_execution.log" # Corregido: Usar LOG_DIR
-CRON_LOG_FILE="$PROJECT_DIR/logs/cron_output.log" # Corregido: Usar LOG_DIR
-CONDA_BASE_PATH=$(conda info --base 2>/dev/null || echo "/home/ubuntu/miniconda3") 
+SCRIPT_LOG_FILE="$PROJECT_DIR/logs/pipeline_execution.log" 
+CRON_LOG_FILE="$PROJECT_DIR/logs/cron_output.log" 
+CONDA_BASE_PATH=$(conda info --base 2>/dev/null || echo "/home/$USER/miniconda3")
 
 ODOO_PRODUCTS_FILE="$PROJECT_DIR/ml_model/wayakit_products.csv"
 NEW_PRODUCTS_TEMP_FILE="$PROJECT_DIR/ml_model/wayakit_new_products_temp.csv"
