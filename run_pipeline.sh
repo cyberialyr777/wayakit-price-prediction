@@ -158,17 +158,6 @@ ANALYSIS_FILE_PARTIAL="$PROJECT_DIR/scraper/analysis-odoo_partial.csv"
 COMPETITORS_FILE="$PROJECT_DIR/scraper/competitors_complete.csv"
 ODOO_QUOTES_FILE="$PROJECT_DIR/ml_model/wayakit_cotizations.csv"
 
-# --- INICIO DE CAMBIOS: Lógica de Etapas (Stages) ---
-STAGE=1 # Por defecto, ejecutamos la Etapa 1
-if [ "$1" == "--stage" ] && [ "$2" == "2" ]; then
-    STAGE=2
-    log_message "Iniciando Pipeline en ETAPA 2 (Ejecución post-revisión manual)."
-else
-    log_message "Iniciando Pipeline en ETAPA 1 (Revisión de fecha y preparación)."
-fi
-# --- FIN DE CAMBIOS ---
-
-
 log_message() {
     local message="$1"
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
@@ -189,6 +178,16 @@ run_command() {
         return 1
     fi
 }
+
+# --- INICIO DE CAMBIOS: Lógica de Etapas (Stages) ---
+STAGE=1 # Por defecto, ejecutamos la Etapa 1
+if [ "$1" == "--stage" ] && [ "$2" == "2" ]; then
+    STAGE=2
+    log_message "Iniciando Pipeline en ETAPA 2 (Ejecución post-revisión manual)."
+else
+    log_message "Iniciando Pipeline en ETAPA 1 (Revisión de fecha y preparación)."
+fi
+# --- FIN DE CAMBIOS ---
 
 # --- INICIO DE CAMBIOS: Condicional de Etapa 1 ---
 # Toda la lógica de decisión y la ejecución completa/parcial-preparación 
