@@ -40,17 +40,10 @@ def setup_logging(log_level=logging.INFO):
     console_handler.setFormatter(log_format)
     logger.addHandler(console_handler)
 
-    # Configurar logging para librerías de terceros (opcional, para reducir ruido)
-    logging.getLogger('urllib3').setLevel(logging.WARNING)
-    logging.getLogger('selenium').setLevel(logging.WARNING)
-    logging.getLogger('webdriver_manager').setLevel(logging.WARNING)
-    logging.getLogger('boto3').setLevel(logging.WARNING)
-    logging.getLogger('botocore').setLevel(logging.WARNING)
-
     return logger
 
 # Configurar el logger al importar el módulo
-logger = setup_logging()
+logger = setup_logging(log_level=logging.DEBUG)
 
 # Puedes añadir una función simple para obtener el logger configurado desde otros módulos
 def get_logger():
