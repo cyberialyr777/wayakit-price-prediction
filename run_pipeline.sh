@@ -142,6 +142,7 @@
 # exit 0
 
 #!/bin/bash
+set -o pipefail
 
 PROJECT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd ) 
 CONDA_ENV_NAME="wayakit_env" 
@@ -162,7 +163,8 @@ log_message() {
     local message="$1"
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     mkdir -p "$LOG_DIR"
-    echo "$timestamp - $message" >> "$SCRIPT_LOG_FILE"
+    # 'tee -a' appends to the file AND prints to the terminal
+    echo "$timestamp - $message" | tee -a "$SCRIPT_LOG_FILE"
 }
 
 run_command() {
@@ -170,7 +172,13 @@ run_command() {
     local description="$2"
     log_message "Iniciando: $description"
 
-    if eval "$cmd" >> "$SCRIPT_LOG_FILE" 2>&1; then
+    # Pipe both stdout (1) and stderr (2) to tee
+    # 'tee -a' appends to the log file AND prints to stdout (the terminal)
+    eval "$cmd" 2>&1 | tee -a "$SCRIPT_LOG_FILE"
+    
+    # Check the exit status of the FIRST command in the pipe (eval)
+    # ${PIPESTATUS[0]} is the exit code of 'eval', not 'tee'
+    if [ ${PIPESTATUS[0]} -eq 0 ]; then
         log_message "Éxito: $description completado."
         return 0
     else
