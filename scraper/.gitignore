@@ -11,6 +11,7 @@ __pycache__/
 
 # CSV and analysis files
 *.csv
+!modifiers_mapping.csv
 
 # Environment files
 .env

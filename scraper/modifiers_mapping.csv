@@ -1,0 +1,512 @@
+Type of product,Search Modifiers
+H1-All purpose cleaner,
+H2-Glass cleaner,
+H3-Kitchen degreaser,
+H3-Oven and grill cleaner,
+H3-Stainless steel cleaner,
+H3-General sanitizer for vegetable and salad washing,
+H4-Toilet bowl cleaner,
+H4-Shower and tub cleaner,
+H4-Mold and mildew remover,
+H4-Tile and grout cleaner,
+H5-Hardwood floor cleaner,
+H5-Tile and laminate cleaner,
+H5-Wax and floor polish,
+H5-Marble cleaner,
+H6-Wood polish for furniture,
+H6-Leather cleaner,
+H7-Carpet shampoo,
+H7-Spot remover for carpets,
+H7-Fabric freshener for furnitures,
+H8-Surface disinfectant spray,
+H8-Disinfectant wipes,
+H9-Stain remover for laundry,
+H9-Fabric refresher,
+H9-Stain remover on the go,
+H11-Aerosol air freshener,
+H11-Odor neutralizing spray,air
+C1-Car wash shampoo,
+C1-Waterless car wash product,
+C2-Wheel cleaner,
+C2-Wheel brightener,
+C3-Car glass cleaner,
+C4-Car upholstery cleaner, liquid
+C4-Car leather cleaner,
+C4-Car leather conditioner,
+C4-Car dashboard and plastic protectant,
+C4-Car surface disinfectant,
+C4-Car surface disinfectant wet rags,
+C4-Car air freshener,
+C4-Car odor eliminator,
+C5-Car gum remover,
+C5-Car water spot remover,
+C5-Car bug and poop remover,
+C6-Car engine degreaser,
+C7-Microfiber for vehicle cleaning,
+C7-Long brush for seating cleaning,automotive
+P1-Deodorizing wipes for pets,
+P1-Waterless shampoo for pets,
+P2-Pet-specific odor eliminator for home,
+P2-Air freshener for pets,
+P2-Fabric freshener for pets,
+P2-Litter box deodorizer,
+P3-Pet urine odor remover,
+P3-Carpet cleaner for pet accidents,
+P4-Flea and tick home spray,
+P5-Antiseptic spray for pets,
+P5-Pet-safe wound washes,
+P6-Pet-safe disinfectant and cleaner,
+P6-Cage and habitat cleaner,
+P6-Aquarium cleaner ,Liquid treatment
+A1-Leather cleaner,aerosense:deep cleaner leather; aerosense:leather cleaner conditioner
+A1-Leather conditioner,aerosense:leather conditioner; aerosense:leather cleaner conditioner
+A1-Wet wipes for various cleaning purposes,aerosense:cabin cleaning wipes triple action; aerosense:avionics wipes
+A2-Broad-spectrum disinfectant for surfaces,aerosense:cabin disinfectant ready use; aerosense:cabin disinfectant concentrate
+A3-Streak-free window cleaner,aerosense:windshield cleaner; aerosense:airframe cleaner
+A3-Cockpit glass cleaner,aerosense:windshield cleaner; aerosense:airframe cleaner
+A3-Mirror and plexiglass cleaner,aerosense:windshield cleaner; aerosense:airframe cleaner
+A4-Lavatory disinfectant,aerosense:flushman lavatory additive
+A4-Toilet and urinal cleaner,
+A4-Odor urinal neutralizer,
+A4-Aircraft air freshener,aerosense:aeroscent air freshener
+A4-Aircraft-grade gentle hand soap,
+A5-Food-safe surface cleaner,aerosense:cabin cleaner triple action
+A5-Stainless steel polisher,
+A6-Non-slip floor cleaner,aerosense:hangar floor cleaner
+A6-Heavy-duty floor degreaser ,
+A6-Aircraft carpet shampoo,
+A6-Aircraft carpet spot remover,aerosense:carpet cleaner
+A7-Aicraft wet wash shampoo,
+A7-Aircraft dry wash exterior cleaner,
+A7-Insect and soil remover,aerosense:insect remover
+A12-Evacuation slide cleaner,
+A12-Evacuation slide lubricant,
+A12-Life vest cleaner,
+A12-Life vest protectant,
+A15-Potable water tank cleaner,
+A15-Fuel tank cleaner,
+A17-Portable fabric refresher for crew and passengers,
+A17-Hand cleaner and degreaser for maintenance,
+A18-Brush for seating cleaning,
+A18-Sponge for aircraft cleaning,
+V1-General purpose cleaner for high-traffic area surfaces,
+V1-High performance carpet cleaner for lounges and waiting areas,
+V1-Stain spot remover for high-use seating areas,
+V2-Industrial-strength floor cleaner for heavy foot traffic-areas,
+V2-Marble floor cleaner for heavy foot traffic-areas,
+V2-Hardwood and laminate floor cleaner,
+"V2-Gum remover for floors, carpets or upholstery",
+V3-Broad-spectrum disinfectant for surfaces and touchpoints,fine:Disinfectant
+V3-Surface cleaning and disinfectant wet rags,
+V4-Heavy-duty toilet and urinal cleaner,
+V4-Restroom deodorizer,
+V4-Restroom air freshener,
+V5-Streak-free glass cleaner for large window areas,fine:glass cleaner
+V6-Stainless steel polish and cleaner for fixtures and fittings,
+V6-Escalator cleaner,
+V6-Escalator tread brightener,
+V7-Epoxy cleaner for heavy-traffic parking lot area,
+V8-Food-safe surface disinfectant for dining areas,
+V8-Degreaser for food service areas,
+V9-Conveyor belt cleaner,
+V9-Conveyor belt degreaser,
+V9-Luggage trolley sanitizing products,
+V10-HVAC system cleaner,
+V10-HVAC system deodorizer,
+R1-Food-grade sanitizers for countertops and prep areas,
+R1-No-rinse sanitizers for quick cleaning,
+R1-Sanitizing wipes for tables and equipment,
+R1-General sanitizer for vegetable and salad washing,
+R1-Wood furniture cleaner,
+R1-Glass cleaner,fine:glass cleaner
+R2-Heavy-duty kitchen degreaser for grills and hoods,
+R2-Oven and fryer cleaner,
+R3-Antibacterial hand soap,fine:Liquid Soap Fine Solutions
+R3-Hand sanitizer (gel) for staff and customers,fine:Antibacterial Gel
+R3-Hand sanitizer (liquid) for staff and customers,
+R5-Non-slip floor cleaner for safety,fine:Floor Cleaner
+R5-Floor degreaser for kitchen areas,
+R6-Kitchen air freshener,
+R6-Kitchen odor eliminator,
+R6-Grease trap odor treatment,
+R6-Refrigerator and freezer deodorizer,
+R8-Stainless steel polish for equipment and fixtures,
+R8-Metal polish for cookware and utensils,
+R8-Glass polish for display cases and windows,fine:glass cleaner
+R11-Heavy-duty toilet and urinal cleaner,
+R11-Sewage odor control,
+R11-Shower and tile cleaner,
+F1-FM general purpose cleaner,officesupply:general purpose cleaner
+F1-FM wood furniture cleaner,fine:Chemicals House Keeping Wax Furniture Polish Fine Solution Prime
+F1-FM leather cleaner,officesupply:leather cleaner
+F2-FM general hard floor cleaner,fine:Floor Cleaner; gogreen:floor cleaner; officesupply:floor cleaner
+F2-FM hard floor polish,
+F2-FM high performance waterless carpet cleaner,
+F2-FM high performance carpet shampoo,gogreen:carpet shampoo
+F2-FM stain spot remover,gogreen:stain remover
+F2-FM marble floor cleaner,
+F2-FM hardwood and laminate floor cleaner,officesupply: wood floor cleaner
+F3-FM broad-spectrum disinfectant for surfaces and touchpoints,fine:Disinfectant; gogreen:disinfectant; officesupply:disinfectant
+F3-FM surface sanitizing wipes,
+F4-FM heavy-duty toilet and urinal cleaner,officesupply:toilet cleaner
+F4-FM restroom deodorizer,officesupply:Blue Drops Automatic Bowl Cleaner - Hygiene Supplies | unbranded
+F4-FM restroom air freshener,officesupply:air freshener
+F4-FM shower and tile cleaner,officesupply: bathroom cleaner
+F5-FM streak-free glass cleaner for large window areas,fine:glass cleaner;  gogreen:glass cleaner; officesupply:glass cleaner
+F6-FM degreaser for food service areas, gogreen:Degrease and Multi-Purpose 12PcsX1 LTR; officesupply:degreaser
+F6-FM grill cleaner,officesupply:grill cleaner
+F6-FM oven and appliance cleaner,gogreen:oven kitchen cleaner
+F6-FM food-safe surface sanitizers,gogreen:Surface Cleaner and Disinfectant; officesupply:surface sanitizer
+F7-FM air freshener,officesupply:air freshener
+F7-FM odor eliminator,officesupply:odor eliminator
+F8-FM stainless steel polish and cleaner for fixtures and fittings,gogreen:stainless steel; officesupply:stainless steel cleaner
+F8-FM escalator cleaner,
+F8-FM escalator tread brightener,
+F9-FM epoxy cleaner for heavy-traffic parking lot area,
+F9-FM parking floor cleaner,
+F10-FM HVAC system cleaner,gogreen:Air Conditioner and Coil Cleaner 
+F10-FM HVAC system deodorizer,
+F11-Fabric refresher,
+I1-General purpose cleaner,officesupply:general purpose cleaner
+I1-Wood furniture cleaner,fine:Chemicals House Keeping Wax Furniture Polish Fine Solution Prime 
+I2-General hard floor cleaner,fine:Floor Cleaner; gogreen:floor cleaner; officesupply:floor cleaner
+I2-Hard floor polish,
+I2-Marble floor cleaner,
+I2-Hardwood and laminate floor cleaner,officesupply:wood floor cleaner
+I3-Low-moisture waterless carpet cleaner,
+I3-High performance carpet shampoo,gogreen:carpet shampoo
+I3-Stain spot remover,gogreen: stain remover
+"I4-Broad-spectrum disinfectant for surfaces, shoe racks and storage areas",fine:Disinfectant; gogreen:disinfectant; officesupply:disinfectant
+I4-Surface sanitizing wipes,
+I5-Mildew and mold remover for wet areas,
+I6-Heavy-duty toilet and urinal cleaner,officesupply:toilet cleaner
+I6-Restroom deodorizer,officesupply:Blue Drops Automatic Bowl Cleaner - Hygiene Supplies | unbranded
+I6-Restroom air freshener,officesupply:air freshener
+I6-Shower and tile cleaner,officesupply:bathroom cleaner
+I7-Streak-free glass cleaner for large window areas,fine:glass cleaner;  gogreen:glass cleaner; officesupply:glass cleaner
+I8-Degreaser for food service areas,gogreen:Degrease and Multi-Purpose; officesupply:degreaser
+I8-Grill cleaner,officesupply:grill cleaner
+I8-Oven and appliance cleaner,gogreen: oven cleaner
+I8-Food-safe surface sanitizer,gogreen:Surface Cleaner and Disinfectant; officesupply:surface sanitizer
+I9-Air deodorizer,officesupply:air freshener
+I9-Sewage odor control spray,
+I12-Epoxy cleaner for heavy-traffic parking lot area,
+I13-HVAC system cleaner,gogreen:Air Conditioner and Coil Cleaner 
+I13-HVAC system deodorizer,
+I14-Aerosol personal disinfectant,
+I14-Other pilgrims hygiene solutions,
+U1-On-site waterless curtain care cleaning,
+"S1-Multi-surface cleaner for equipment, benches, and countertops",officesupply:general purpose cleaner
+S1-Wood furniture cleaner,fine:Chemicals House Keeping Wax Furniture Polish Fine Solution Prime 
+S1-Streak-free glass cleaner for mirrors and windows,fine:glass cleaner;  gogreen:glass cleaner; officesupply:glass cleaner
+S1-Non-slip floor cleaner for gym floors and exercise areas,fine:Floor Cleaner; gogreen:floor cleaner; officesupply:floor cleaner
+S1-Hard floor polish,
+S1-Hardwood and laminate floor cleaner,officesupply:wood floor cleaner
+S1-Marble floor cleaner,
+S1-High performance carpet shampoo,gogreen:carpet shampoo
+S1-Stain spot remover,gogreen:Dry Stain Remover
+S2-Toilet bowl and urinal cleaner,officesupply:toilet cleaner
+S2-Mildew and mold remover for wet areas,
+S2-Antibacterial hand soap,gogreen:Anti-bacterial Hand Soap; officesupply:hand soap
+S2-Shower and tile cleaner,officesupply:bathroom cleaner
+S2-Body wash gel,
+S3-Broad-spectrum disinfectant for surfaces,fine:Disinfectant; gogreen:disinfectant; officesupply:disinfectant
+S4-Stain remover for laundry,gogreen:stain remover clothes
+S4-Sanitizing fabric refresher for towels and sports clothes,officesupply:Air and Fabric Freshener
+S5-Disinfectant wipes and sprays for gym equipment,
+S5-Lubricant for maintaining machinery and weight systems,
+S5-Upholstery cleaner for padded equipment,
+S5-Disinfectant spray for yoga mats and exercise mats,
+S6-Air freshener,officesupply:air freshener
+S6-Extreme odor neutralizer,
+S6-Sewage odor control spray,
+S7-HVAC system cleaner,gogreen:Air Conditioner and Coil Cleaner 
+S7-HVAC system deodorizer,
+S10-Body refreshing wipe with deodorizing properties,
+S10-Odor neutralizer and disinfectant spray for shoes and equipment,
+T1-Vehicle wash shampoo,gogreen:Car shampoo
+T1-Waterless vehicle wash product,
+T2-Wheel cleaner,
+T2-Wheel brightener,
+T3-Vehicle glass cleaner,
+T4-Vehicle upholstery cleaner for fabric seats,
+T4-Vehicle stain spot remover,
+T4-Vehicle leather cleaner,
+T4-Vehicle leather conditioner,
+T4-Vehicle dashboard and plastic protectant,
+T4-Vehicle surface disinfectant,
+T4-Vehicle surface disinfectant wet rags,
+T4-Vehicle air freshener,
+T4-Vehicle odor eliminator,
+T4-Vehicle deodorizing fabric freshener for seats,
+T4-HVAC system freshener,
+T5-Vehicle vinyl top cleaner,
+T5-Vehicle water spot remover,
+T5-Vehicle bug remover,
+T6-Heavy-duty non-slip floor cleaner,fine:Floor cleaner
+T6-Vehicle floor polish for hard floor,
+T7-Heavy-duty toilet and urinal cleaner,
+T7-Restroom odor urinal neutralizer,
+T7-Restroom air freshener,
+T9-Vehicle engine degreaser,
+T10-Food-safe surface cleaner and disinfectant,gogreen:Surface Cleaner and Disinfectant
+T10-Food-safe kitchen degreaser,gogreen:Degrease and Multi-Purpose
+T10-Stainless steel polisher,gogreen:Box Metal and stainless-steel cleaner and polisher
+T11-Adhesive remover for vehicles,
+T11-Brush for seating cleaning,
+T11-White sponge for surface cleaning,
+"M1-Multi-surface cleaners for decks, cabins, and common areas",
+M1-Wood furniture cleaner,
+M1-Streak-free glass cleaners for windows and portholes,
+M1-Non-slip floor cleaners for safety on wet surfaces,
+M1-Hardwood and laminate floor cleaner,
+M1-Carpet shampoo for cabins and lounges,
+M1-Stain spot remover,
+M1-Upholstery cleaners for fabric surfaces,
+M1-Leather and vinyl cleaners for seats and steering wheels,
+M2-Marine-grade disinfectant for thorough cleaning,
+M2-Marine-grade disinfectant and cleaning wipes,
+M3-Air freshener,
+M3-Extreme odor neutralizer,
+M3-Deodorizing fabric freshener for seats and cushions,
+M4-Heavy-duty toilet and urinal cleaner,
+M4-Shower and tile cleaner,
+M4-Mildew and mold remover for wet areas,
+M5-Food-grade sanitizers for countertops and prep areas,
+M5-Heavy-duty kitchen degreaser for grills and hoods,
+M5-Oven and fryer cleaner,
+M5-Grease trap odor treatment,
+M5-Refrigerator and freezer deodorizer,
+M5-Stainless steel polish for kitchen equipment and fixtures,
+M5-Metal polish for cookware and utensils,
+M5-Glass polish for display cases and windows,
+M6-Marine-grade stain remover for laundry,
+M7-HVAC system cleaner,
+M7-HVAC system deodorizer,
+"M9-Marine hull cleaner to remove algae, barnacles, and salt build-up",
+M9-Teak and wood deck cleaner,
+M9-Deck cleaner for removing grime and stains,
+M9-Protective polish for hull and superstructure,
+M9-Metal polish for fixtures and fittings,
+M9-Mildew and mold remover,
+M10-Marine-grade engine room degreaser,
+"M10-Specialized bilge cleaners to remove oil, grease, and grime from bilge areas",
+M12-White sponge for surface cleaning,
+L1-General purpose cleaner,officesupply:general purpose cleaner
+L1-Wood furniture cleaner,fine:Chemicals House Keeping Wax Furniture Polish Fine Solution Prime 
+L1-General hard floor cleaner,fine:Floor Cleaner; gogreen:floor cleaner; officesupply:floor cleaner
+L1-Hard floor polish,
+L1-Marble floor cleaner,
+L1-Hardwood and laminate floor cleaner,officesupply:wood floor cleaner
+L1-Low-moisture waterless carpet cleaner,
+L1-High performance carpet shampoo,gogreen:carpet shampoo
+L1-Stain spot remover,gogreen:stain remover
+L1-Streak-free glass cleaner for mirrors and windows,fine:Glass cleaner; gogreen:glass cleaner; officesupply:glass cleaner
+L2-Broad-spectrum disinfectant for spas and salons equipment,fine:Disinfectant; gogreen:disinfectant; officesupply:disinfectant
+L2-Surface disinfectant wet rags for spas and salons equipment,
+L3-Toilet bowl and urinal cleaner,officesupply:toilet cleaner
+L3-Mildew and mold remover for wet areas,
+L3-Antibacterial hand soap,fine:Liquid Soap Fine Solutions; gogreen:hand soap; officesupply:hand soap
+L3-Shower and tile cleaner,officesupply: bathroom cleaner
+L4-Air freshener,officesupply: air freshener
+L4-Extreme odor neutralizer,
+L4-Sewage odor control spray,
+L5-HVAC system cleaner,gogreen:Air Conditioner and Coil Cleaner 
+L5-HVAC system deodorizer,
+L6-Stain remover for laundry,gogreen:stain remover
+L6-Sanitizing fabric refresher for towels,officesupply:Air and Fabric Freshener
+L8-Body refreshing wipe with deodorizing properties,
+L9-White sponge for surface cleaning,
+E1-General purpose cleaner,officesupply:general purpose cleaner
+E1-Wood furniture cleaner,fine:Chemicals House Keeping Wax Furniture Polish Fine Solution Prime 
+E1-Leather cleaner,officesupply:leather cleaner
+E2-General hard floor cleaner,fine:Floor Cleaner; gogreen:floor cleaner; officesupply:floor cleaner
+E2-Hard floor polish,
+E2-High performance waterless carpet cleaner,
+E2-High performance carpet shampoo,gogreen:carpet shampoo
+E2-Stain spot remover,gogreen:Dry Stain Remover
+E2-Marble floor cleaner,
+E2-Hardwood and laminate floor cleaner,officesupply:wood floor cleaner
+"E3-Broad-spectrum disinfectant for surfaces, mattress and touchpoints",fine:Disinfectant; gogreen:disinfectant; officesupply:disinfectant
+E3-Surface disinfectant wet rags,
+E4-Heavy-duty toilet and urinal cleaner,officesupply:toilet cleaner
+E4-Restroom deodorizer,officesupply:Blue Drops Automatic Bowl Cleaner - Hygiene Supplies | unbranded
+E4-Restroom air freshener,officesupply:air refresher
+E4-Shower and tile cleaner,officesupply:bathroom cleaner
+E4-Sewage odor control spray,
+E5-Streak-free glass cleaner for large window areas,fine:Glass cleaner; gogreen:glass cleaner; officesupply:glass cleaner
+E6-Degreaser for food service areas,gogreen:Degrease and Multi-Purpose; officesupply:degreaser
+E6-Grill cleaner,officesupply:grill cleaner
+E6-Oven and appliance cleaner,gogreen:Oven kitchen Cleaner
+E6-Food-safe surface sanitizers,gogreen:Surface Cleaner and Disinfectant; officesupply:surface sanitizer
+E6-Non-slip floor cleaner for safety,gogreen:floor cleaner; officesupply:floor cleaner
+E6-Floor degreaser for kitchen areas,
+E6-Grease trap odor treatment,
+E6-Refrigerator and freezer deodorizer,
+E6-Stainless steel polish for equipment and fixtures,gogreen:Box Metal and stainless-steel cleaner and polisher;officesupply:stainless steel cleaner
+E6-Metal polish for cookware and utensils,gogreen:Box Metal and stainless-steel cleaner and polisher
+E6-Glass polish for display cases and windows,fine:Glass cleaner; gogreen:glass cleaner; officesupply:glass cleaner
+E7-Air freshener,officesupply:air freshener
+E7-Air deodorizer,
+E7-Odor eliminator,
+E8-Stainless steel polish and cleaner for fixtures and fittings,gogreen:Box Metal and stainless-steel cleaner and polisher
+E8-Escalator cleaner,
+E8-Escalator tread brightener,
+E9-Epoxy cleaner for heavy-traffic parking lot area,
+E10-HVAC system cleaner,gogreen:Air Conditioner and Coil Cleaner 
+E10-HVAC system deodorizer,
+E11-Stain remover for laundry,gogreen:stain remover
+"E11-Fabric refresher for linen, towels, curtains, mattresses and upholstery",officesupply:Air and Fabric Freshener
+E13-Broad-spectrum disinfectant for spas and salons equipment,fine:Disinfectant; gogreen:disinfectant; officesupply:disinfectant
+E14-Non-slip floor cleaner for gym floors and exercise areas,fine:Floor Cleaner; gogreen:floor cleaner; officesupply:floor cleaner
+E14-Lubricant for maintaining machinery and weight systems,
+"E14-Disinfectant spray for gym equipment, yoga mats and exercise mats",gogreen:Surface Cleaner and Disinfectant
+E14-Extreme odor neutralizer,
+E14-Body refreshing wipe with deodorizing properties,
+E14-Odor neutralizer and disinfectant spray for shoes and equipment,
+E15-White sponge for surface cleaning,
+O1-General purpose cleaner,
+O1-Wood furniture cleaner,fine:Chemicals House Keeping Wax Furniture Polish Fine Solution Prime 
+O2-General hard floor cleaner,fine:Floor Cleaner
+O2-Hard floor polish,
+O2-High performance waterless carpet cleaner,
+O2-High performance carpet shampoo,
+O2-Stain spot remover,
+O2-Marble floor cleaner,
+O2-Hardwood and laminate floor cleaner,
+"O3-Broad-spectrum disinfectant for surfaces, mattress and touchpoints",fine:Disinfectant
+O3-Surface disinfectant wet rags,
+O4-Heavy-duty toilet and urinal cleaner,
+O4-Restroom deodorizer,
+O4-Restroom air freshener,
+O4-Shower and tile cleaner,
+O4-Sewage odor control spray,
+O5-Streak-free glass cleaner for large window areas,fine:Glass cleaner
+O6-Degreaser for food service areas,
+O6-Grill cleaner,
+O6-Oven and appliance cleaner,
+O6-Food-safe surface sanitizers,
+O6-Non-slip floor cleaner for safety,fine:Floor cleaner
+O6-Floor degreaser for kitchen areas,
+O6-Grease trap odor treatment,
+O6-Refrigerator and freezer deodorizer,
+O6-Stainless steel polish for equipment and fixtures,
+O7-Air freshener,
+O7-Air deodorizer,
+O7-Odor eliminator,
+O8-Stainless steel polish and cleaner for fixtures and fittings,
+O8-Escalator cleaner,
+O8-Escalator tread brightener,
+O9-Epoxy cleaner for heavy-traffic parking lot area,
+O10-HVAC system cleaner,
+O10-HVAC system deodorizer,
+O11-Stain remover for laundry,
+"O11-Fabric refresher for linen, towels, curtains, mattresses and upholstery",
+O13-White sponge for surface cleaning,
+D1-Leather cleaner,
+D1-Leather conditioner,
+D1-Wet wipes for various cleaning purposes,
+D2-Broad-spectrum disinfectant for surfaces,
+D3-Streak-free window cleaner,
+D3-Cockpit glass cleaner,
+D3-Mirror and plexiglass cleaner,
+D4-Lavatory disinfectant,
+D4-Toilet and urinal cleaner,
+D4-Odor urinal neutralizer,
+D4-Aircraft air freshener,
+D5-Food-safe surface cleaner,
+D5-Stainless steel polisher,
+D6-Non-slip floor cleaner,
+D6-Heavy-duty floor degreaser ,
+D6-Aircraft carpet shampoo,
+D6-Aircraft carpet spot remover,
+D7-Aicraft wet wash shampoo,
+D7-Aircraft dry wash exterior cleaner,
+D7-Insect and soil remover,
+D12-Evacuation slide cleaner,
+D12-Evacuation slide lubricant,
+D12-Life vest cleaner,
+D12-Life vest protectant,
+D15-Potable water tank cleaner,
+D15-Fuel tank cleaner,
+D17-Portable fabric refresher for crew and passengers,
+D17-Hand cleaner and degreaser for maintenance,
+D18-Brush for seating cleaning,
+"D19-Multi-surface cleaners for decks, cabins, and common areas",
+D19-Streak-free glass cleaners for windows and portholes,
+D19-Non-slip floor cleaners for safety on wet surfaces,
+D19-Carpet shampoo for cabins and lounges,
+D19-Leather and vinyl cleaners for seats and steering wheels,
+"D21-Marine hull cleaner to remove algae, barnacles, and salt build-up",
+D21-Teak and wood deck cleaner,
+D21-Deck cleaner for removing grime and stains,
+D21-Protective polish for hull and superstructure,
+D21-Metal polish for fixtures and fittings,
+D21-Mildew and mold remover,
+D22-Marine-grade engine room degreaser,
+"D22-Specialized bilge cleaners to remove oil, grease, and grime from bilge areas",
+D23-General purpose cleaner,
+D23-Wood furniture cleaner,
+D24-General hard floor cleaner,
+D24-Hard floor polish,
+D24-High performance waterless carpet cleaner,
+D24-High performance carpet shampoo,
+D24-Stain spot remover,
+D24-Marble floor cleaner,
+D24-Hardwood and laminate floor cleaner,
+D25-Broad-spectrum disinfectant for surfaces and touchpoints,
+D25-Surface sanitizing wipes,
+D26-Heavy-duty toilet and urinal cleaner,
+D26-Restroom deodorizer,
+D26-Restroom air freshener,
+D26-Shower and tile cleaner,
+D27-Streak-free glass cleaner for large window areas,
+D28-Degreaser for food service areas,
+D28-Grill cleaner,
+D28-Oven and appliance cleaner,
+D28-Food-safe surface sanitizers,
+D29-Air freshener,
+D29-Odor eliminator,
+D30-Stainless steel polish and cleaner for fixtures and fittings,
+D30-Escalator cleaner,
+D30-Escalator tread brightener,
+D31-Epoxy cleaner for heavy-traffic parking lot area,
+D32-HVAC system cleaner,
+D32-HVAC system deodorizer,
+D33-Fabric refresher,
+D34-Body refreshing wipe with deodorizing properties,
+D34-White sponge for cleaning ,
+"U1-Heavy-duty multi-surface cleaner machinery, workbenches, and industrial equipment",officesupply:general purpose cleaner
+U1-Wood furniture cleaner,fine:Chemicals House Keeping Wax Furniture Polish Fine Solution Prime 
+U2-General hard floor cleaner,fine:Floor Cleaner; gogreen:floor cleaner; officesupply:floor cleaner
+U2-Hard floor polish,
+U2-Marble floor cleaner,
+U2-Hardwood and laminate floor cleaner,officesupply:wood floor cleaner
+U2-High performance waterless carpet cleaner,
+U2-High performance carpet shampoo,gogreen: carpet shampoo
+U2-Stain spot remover,gogreen:Dry Stain Remover
+U3-Streak-free glass cleaner for large window areas,fine:Glass cleaner; gogreen:glass cleaner; officesupply:glass cleaner
+U4-Broad-spectrum disinfectants for sanitizing work areas and break rooms ,fine:Disinfectant; gogreen:disinfectant; officesupply:disinfectant
+U4-Surface disinfectant wet rags,
+U5-Toilet and urinal cleaner,officesupply:toilet cleaner
+U5-Restroom deodorizer,officesupply:Blue Drops Automatic Bowl Cleaner - Hygiene Supplies | unbranded
+U5-Restroom air freshener,officesupply:air freshener
+U5-Shower and tile cleaner,officesupply:bathroom cleaner
+U6-Heavy-duty degreaser for machinery and equipment,gogreen:Degrease and Multi-Purpose
+U6-Stainless steel polish,gogreen:Box Metal and stainless-steel cleaner and polisher; officesupply:stainless steel cleaner
+U7-Rubber mats and non-slip floor cleaner,
+U7-Heavy-duty floor degreasers,
+U8-Degreaser for food service areas,gogreen:Degrease and Multi-Purpose; officesupply:degreaser
+U8-Food-safe surface sanitizers,gogreen:Surface Cleaner and Disinfectant; officesupply:surface sanitizer
+U8-Grill cleaner,officesupply:grill cleaner
+U8-Oven and appliance cleaner,gogreen:Oven kitchen Cleaner
+U8-Kitchen odor eliminator,
+U10-Air freshener,officesupply:air freshener
+U10-Odor neutralizer,
+U12-Escalator cleaner,
+U12-Escalator tread brightener,
+U13-Epoxy cleaner for heavy-traffic parking lot area,
+U14-HVAC system cleaner,gogreen:Air Conditioner and Coil Cleaner 
+U14-HVAC system deodorizer,
+U16-Fabric refresher,officesupply:Air and Fabric Freshener
+U17-White sponge for surface cleaning,
