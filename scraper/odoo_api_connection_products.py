@@ -32,7 +32,7 @@ def get_secret(secret_name, region_name="me-south-1"):
 
 
 parser = argparse.ArgumentParser(description="Genera la lista de productos/subindustrias para scraping.")
-parser.add_argument('--input_odoo_products_file', default='../ml_model/wayakit_products.csv',
+parser.add_argument('--input_odoo_products_file', default='ml_model/wayakit_products.csv',
                     help="Archivo CSV de entrada con productos de Odoo (ej. wayakit_products.csv o wayakit_new_products_temp.csv).")
 parser.add_argument('--output_analysis_file', default='scraper/analysis-odoo.csv',
                     help="Archivo CSV de salida para el scraper (ej. analysis-odoo.csv o analysis-odoo_partial.csv).")
