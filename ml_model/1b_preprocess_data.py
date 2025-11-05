@@ -2,17 +2,31 @@
 import pandas as pd
 import os
 import sys
-
+import argparse
 # Añadir el directorio raíz al path para poder importar log_config
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from log_config import get_logger
 
 logger = get_logger()
 
+# --- 2. AÑADIMOS EL PARSER DE ARGUMENTOS ---
+parser = argparse.ArgumentParser(description="Prepara la lista de productos Wayakit para predecir.")
+parser.add_argument('--run_mode', default='full', choices=['partial', 'full'],
+                    help="Define el modo de ejecución: 'partial' (solo productos nuevos) o 'full' (todos los productos).")
+args = parser.parse_args()
+# --- FIN DE CAMBIOS 2 ---
+
 def generar_lista_prediccion():
     archivo_volumetrico = 'ml_model/competitor_volumetric_processed.csv'
     archivo_unidades = 'ml_model/competitor_unit_processed.csv'
-    catalogo_maestro = 'ml_model/wayakit_products.csv'
+    # Decide qué catálogo de productos usar basado en el argumento --run_mode
+    if args.run_mode == 'partial':
+        catalogo_maestro = 'ml_model/wayakit_new_products_temp.csv'
+        logger.info(f"Modo PARCIAL detectado. Usando catálogo de productos NUEVOS: '{catalogo_maestro}'")
+    else:
+        catalogo_maestro = 'ml_model/wayakit_products.csv'
+        logger.info(f"Modo FULL detectado. Usando catálogo de productos COMPLETO: '{catalogo_maestro}'")
+    # --- FIN DE CAMBIOS 3 ---
     archivo_salida = 'ml_model/wayakit_products_to_predict_odoo.csv'
 
     archivos_necesarios = [archivo_volumetrico, archivo_unidades, catalogo_maestro]

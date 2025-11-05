@@ -273,7 +273,7 @@ if [ "$STAGE" == "1" ]; then
         run_command "python ml_model/1a_preprocess_data.py" "5. Preprocesar datos de competencia" || exit 1
 
         log_message "--- PASO 6: Preparando Datos Wayakit para Predicción ---"
-        run_command "python ml_model/1b_preprocess_data.py" "6. Preparar datos de Wayakit para predicción" || exit 1
+        run_command "python ml_model/1b_preprocess_data.py --run_mode full" "6. Preparar datos de Wayakit para predicción" || exit 1
 
         log_message "--- PASO 7: Entrenando Modelos ML ---"
         run_command "python ml_model/2_train_models.py" "7. Entrenar modelos ML" || exit 1
@@ -368,7 +368,7 @@ if [ "$STAGE" == "2" ]; then
     run_command "python ml_model/1a_preprocess_data.py" "5. Preprocesar datos de competencia" || exit 1
 
     log_message "--- PASO 6: Preparando Datos Wayakit para Predicción ---"
-    run_command "python ml_model/1b_preprocess_data.py" "6. Preparar datos de Wayakit para predicción" || exit 1
+    run_command "python ml_model/1b_preprocess_data.py --run_mode partial" "6. Preparar datos de Wayakit para predicción" || exit 1
 
     log_message "--- PASO 7: Entrenando Modelos ML ---"
     run_command "python ml_model/2_train_models.py" "7. Entrenar modelos ML" || exit 1
