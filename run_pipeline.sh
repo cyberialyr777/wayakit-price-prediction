@@ -407,24 +407,18 @@
 
 
 
-
-
-
-
-
 #!/bin/bash
 set -o pipefail
 
 # --- CONFIGURACIÓN ---
-PROJECT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd ) 
+PROJECT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> / dev / null && pwd ) 
 CONDA_ENV_NAME="wayakit_env" 
 LOG_DIR="$PROJECT_DIR/logs"
 
 # --- Archivos de Estado y Logs ---
 LAST_FULL_RUN_FILE="$LOG_DIR/last_full_run.txt"
-RUN_MODE_FILE="$LOG_DIR/run_mode.txt" # <-- NUEVO ARCHIVO DE ESTADO
+RUN_MODE_FILE="$LOG_DIR/run_mode.txt" # Archivo de estado
 SCRIPT_LOG_FILE="$PROJECT_DIR/logs/pipeline_execution.log" 
-CRON_LOG_FILE="$PROJECT_DIR/logs/cron_output.log" 
 CONDA_BASE_PATH=$(conda info --base 2>/dev/null || echo "/home/$USER/miniconda3")
 
 # --- Archivos de Datos ---
@@ -433,7 +427,6 @@ NEW_PRODUCTS_TEMP_FILE="$PROJECT_DIR/ml_model/wayakit_new_products_temp.csv"
 ANALYSIS_FILE_FULL="$PROJECT_DIR/scraper/analysis-odoo.csv"
 ANALYSIS_FILE_PARTIAL="$PROJECT_DIR/scraper/analysis-odoo_partial.csv"
 COMPETITORS_FILE="$PROJECT_DIR/scraper/competitors_complete.csv"
-ODOO_QUOTES_FILE="$PROJECT_DIR/ml_model/wayakit_cotizations.csv"
 
 # --- Funciones de Logging ---
 log_message() {
@@ -466,7 +459,7 @@ else
 fi
 
 # ==================================================================
-# --- INICIO DE ETAPA 1 (Preparación y Pausa para Revisión) ---
+# --- INICIO DE ETAPA 1 (Preparación y Apagado) ---
 # ==================================================================
 if [ "$STAGE" == "1" ]; then
 
@@ -486,7 +479,7 @@ if [ "$STAGE" == "1" ]; then
         LAST_RUN_STR=$(cat "$LAST_FULL_RUN_FILE")
         LAST_RUN_TS=$(date -d "$LAST_RUN_STR" +%s 2>/dev/null)
         if [ -z "$LAST_RUN_TS" ]; then
-             log_message "ERROR: Formato de fecha inválido en '$LAST_FULL_RUN_FILE'. Ejecución COMPLETA requerida."
+             log_message "ERROR: Formato de fecha inválido. Ejecución COMPLETA requerida."
              IS_FULL_RUN="true"
         elif [ "$LAST_RUN_TS" -lt "$THREE_MONTHS_AGO_TS" ]; then
              log_message "Última ejecución completa ($LAST_RUN_STR) fue hace más de 3 meses. Ejecución COMPLETA requerida."
@@ -501,49 +494,38 @@ if [ "$STAGE" == "1" ]; then
     cd "$PROJECT_DIR" || { log_message "ERROR: No se pudo acceder a $PROJECT_DIR"; exit 1; }
 
     log_message "Inicializando Conda..."
-    source "${CONDA_BASE_PATH}/etc/profile.d/conda.sh" || { log_message "ERROR: No se pudo inicializar Conda en ${CONDA_BASE_PATH}"; exit 1; }
+    source "${CONDA_BASE_PATH}/etc/profile.d/conda.sh" || { log_message "ERROR: No se pudo inicializar Conda"; exit 1; }
 
     log_message "Activando entorno Conda: $CONDA_ENV_NAME"
     conda activate "$CONDA_ENV_NAME" || { log_message "ERROR: No se pudo activar el entorno $CONDA_ENV_NAME"; exit 1; }
     log_message "Entorno Conda activado."
 
     log_message "--- PASO 1: Preparando lista de scraping ---"
-    
-    # 1a. Obtener SIEMPRE la lista completa de productos de Odoo
     run_command "python ml_model/odoo_api_products.py" "1a. Obtener TODOS los productos de Odoo (con fecha)" || exit 1
 
     if [ "$IS_FULL_RUN" == "true" ]; then
         log_message "Modo: EJECUCIÓN COMPLETA (Preparación)"
-        
-        # 1b. Generar lista COMPLETA de scraping
-        run_command "python scraper/odoo_api_connection_products.py --input_odoo_products_file '$ODOO_PRODUCTS_FILE' --output_analysis_file '$ANALYSIS_FILE_FULL'" "1b. Generar lista COMPLETA de scraping ($ANALYSIS_FILE_FULL)" || exit 1
-        
-        # Escribir estado para Etapa 2
+        run_command "python scraper/odoo_api_connection_products.py --input_odoo_products_file '$ODOO_PRODUCTS_FILE' --output_analysis_file '$ANALYSIS_FILE_FULL'" "1b. Generar lista COMPLETA de scraping" || exit 1
         echo "full" > "$RUN_MODE_FILE"
-        log_message "Timestamp de ejecución COMPLETA actualizado en '$LAST_FULL_RUN_FILE'."
         echo "$(date -u '+%Y-%m-%d %H:%M:%S')" > "$LAST_FULL_RUN_FILE"
-        
         log_message "Archivo '$ANALYSIS_FILE_FULL' está listo para revisión manual."
 
     else
         log_message "Modo: EJECUCIÓN PARCIAL (Preparación)"
-        
-        # 1b. Filtrar productos NUEVOS
-        run_command "python ml_model/filter_new_products.py --input '$ODOO_PRODUCTS_FILE' --timestamp '$LAST_FULL_RUN_FILE' --output '$NEW_PRODUCTS_TEMP_FILE'" "1b. Filtrar productos NUEVOS ($NEW_PRODUCTS_TEMP_FILE)" || exit 1
-        
-        # Escribir estado para Etapa 2
+        run_command "python ml_model/filter_new_products.py --input '$ODOO_PRODUCTS_FILE' --timestamp '$LAST_FULL_RUN_FILE' --output '$NEW_PRODUCTS_TEMP_FILE'" "1b. Filtrar productos NUEVOS" || exit 1
         echo "partial" > "$RUN_MODE_FILE"
-        
-        log_message "Archivo '$NEW_PRODUCTS_TEMP_FILE' está listo para revisión manual."
+        log_message "Archivo '$NEW_PRODUCTS_TEMP_FILE' está listo."
     fi
 
     log_message "--- ETAPA 1 (Preparación) completada ---"
-    log_message "Realice la revisión manual (ej. 'scraper/modifiers_mapping.csv') si es necesario."
-    log_message "Para continuar, ejecute: ./run_pipeline.sh --stage 2"
-    
     log_message "Desactivando entorno Conda."
     conda deactivate
+    
+    # --- CAMBIO IMPORTANTE: Apagado automático ---
+    log_message "El servidor se apagará en 1 minuto. (Miércoles 10:30 PM)"
     log_message "========================================"
+    # Esto apagará la instancia EC2
+    sudo shutdown -h +1
     exit 0
 
 fi
@@ -561,69 +543,58 @@ if [ "$STAGE" == "2" ]; then
 
     if [ ! -f "$RUN_MODE_FILE" ]; then
         log_message "ERROR: Archivo de estado '$RUN_MODE_FILE' no encontrado."
-        log_message "No se puede continuar. Ejecute la Etapa 1 primero."
         exit 1
     fi
 
-    # Leer el modo de ejecución guardado por la Etapa 1
     RUN_MODE=$(cat "$RUN_MODE_FILE")
     log_message "Modo de continuación detectado: $RUN_MODE"
-
-    log_message "Cambiando a directorio: $PROJECT_DIR"
+    
+    # Asegúrate de que los cambios manuales de Git se apliquen
+    log_message "Actualizando proyecto desde Git..."
     cd "$PROJECT_DIR" || { log_message "ERROR: No se pudo acceder a $PROJECT_DIR"; exit 1; }
-
+    git pull
+    
     log_message "Inicializando Conda..."
-    source "${CONDA_BASE_PATH}/etc/profile.d/conda.sh" || { log_message "ERROR: No se pudo inicializar Conda en ${CONDA_BASE_PATH}"; exit 1; }
+    source "${CONDA_BASE_PATH}/etc/profile.d/conda.sh" || { log_message "ERROR: No se pudo inicializar Conda"; exit 1; }
 
     log_message "Activando entorno Conda: $CONDA_ENV_NAME"
     conda activate "$CONDA_ENV_NAME" || { log_message "ERROR: No se pudo activar el entorno $CONDA_ENV_NAME"; exit 1; }
     log_message "Entorno Conda activado."
-
+    
+    SHUTDOWN_SCHEDULE_TIME="02:00" # Por defecto: Viernes 2:00 AM (para Parcial)
+    
     # --- INICIO: Flujo de EJECUCIÓN COMPLETA (Etapa 2) ---
     if [ "$RUN_MODE" == "full" ]; then
-    
-        log_message "--- PASO 2: Ejecutando Scraping (Completo) ---"
+        log_message "Continuando con flujo COMPLETO..."
         ANALYSIS_FILE_TO_USE="$ANALYSIS_FILE_FULL"
         SCRAPER_OUTPUT_MODE="overwrite"
+        SHUTDOWN_SCHEDULE_TIME="06:00" # Sobrescribir: Sábado 6:00 AM
         
         if [ -f "$COMPETITORS_FILE" ]; then
-            log_message "Limpiando archivo de competidores existente para ejecución completa."
+            log_message "Limpiando archivo de competidores existente."
             rm "$COMPETITORS_FILE"
         fi
-        run_command "python scraper/main.py --analysis_file '$ANALYSIS_FILE_TO_USE' --output_mode '$SCRAPER_OUTPUT_MODE' --output_file '$COMPETITORS_FILE'" "2. Ejecutar scraping (Modo: $SCRAPER_OUTPUT_MODE)" || exit 1
-
-        log_message "--- PASO 3: Obteniendo Cotizaciones y Competidores Odoo ---"
-        run_command "python ml_model/odoo_api_cotizations.py" "3a. Obtener cotizaciones de Odoo" || exit 1
-        run_command "python ml_model/odoo_api_competitor_products.py" "3b. Obtener productos de competidores de Odoo" || exit 1
         
-        log_message "--- PASO 4: Asegurando Productos Odoo ---"
+        run_command "python scraper/main.py --analysis_file '$ANALYSIS_FILE_TO_USE' --output_mode '$SCRAPER_OUTPUT_MODE' --output_file '$COMPETITORS_FILE'" "2. Ejecutar scraping (Modo: $SCRAPER_OUTPUT_MODE)"
+        run_command "python ml_model/odoo_api_cotizations.py" "3a. Obtener cotizaciones de Odoo"
+        run_command "python ml_model/odoo_api_competitor_products.py" "3b. Obtener productos de competidores de Odoo"
+        
         if [ ! -f "$ODOO_PRODUCTS_FILE" ]; then
-            log_message "Archivo $ODOO_PRODUCTS_FILE no encontrado, ejecutando de nuevo."
-            run_command "python ml_model/odoo_api_products.py" "4. Obtener productos de Odoo" || exit 1
-        else
-            log_message "Archivo $ODOO_PRODUCTS_FILE ya existe desde Etapa 1."
+            run_command "python ml_model/odoo_api_products.py" "4. (Re)Obtener productos de Odoo"
         fi
 
-        log_message "--- PASO 5: Preprocesando Datos de Competencia ---"
-        run_command "python ml_model/1a_preprocess_data.py" "5. Preprocesar datos de competencia" || exit 1
-
-        log_message "--- PASO 6: Preparando Datos Wayakit para Predicción (Completo) ---"
-        run_command "python ml_model/1b_preprocess_data.py --run_mode full" "6. Preparar datos de Wayakit para predicción (Modo: full)" || exit 1
-
-        log_message "--- PASO 7: Entrenando Modelos ML ---"
-        run_command "python ml_model/2_train_models.py" "7. Entrenar modelos ML" || exit 1
-
-        log_message "--- PASO 8: Generando Predicciones de Precios ---"
-        run_command "python ml_model/3_predicted_prices.py" "8. Generar predicciones de precios" || exit 1
-
-        log_message "--- PASO 9: Subiendo Sugerencias a Odoo (Completo) ---"
-        run_command "python ml_model/odoo_api_price_suggestion.py --run_mode full" "9. Subir sugerencias de precios a Odoo (Modo: full)" || exit 1
+        run_command "python ml_model/1a_preprocess_data.py" "5. Preprocesar datos de competencia"
+        run_command "python ml_model/1b_preprocess_data.py --run_mode full" "6. Preparar datos Wayakit (Modo: full)"
+        run_command "python ml_model/2_train_models.py" "7. Entrenar modelos ML"
+        run_command "python ml_model/3_predicted_prices.py" "8. Generar predicciones"
+        run_command "python ml_model/odoo_api_price_suggestion.py --run_mode full" "9. Subir sugerencias a Odoo (Modo: full)"
 
     # --- FIN: Flujo de EJECUCIÓN COMPLETA (Etapa 2) ---
 
     # --- INICIO: Flujo de EJECUCIÓN PARCIAL (Etapa 2) ---
     elif [ "$RUN_MODE" == "partial" ]; then
 
+        log_message "Continuando con flujo PARCIAL..."
         log_message "Verificando si hay productos nuevos en '$NEW_PRODUCTS_TEMP_FILE'..."
         LINE_COUNT=$(wc -l < "$NEW_PRODUCTS_TEMP_FILE" | xargs) 
 
@@ -631,59 +602,43 @@ if [ "$STAGE" == "2" ]; then
             log_message "No se encontraron productos nuevos ($LINE_COUNT líneas). No se requiere ejecución."
             log_message "Omitiendo ETAPA 2."
         else
-            log_message "Se encontraron $LINE_COUNT productos nuevos (incluyendo cabecera). Continuando..."
+            log_message "Se encontraron $LINE_COUNT productos nuevos. Continuando..."
             
-            log_message "--- PASO 1c: Generando Lista Parcial de Scraping ---"
             ANALYSIS_FILE_TO_USE="$ANALYSIS_FILE_PARTIAL"
             SCRAPER_OUTPUT_MODE="append"
-            run_command "python scraper/odoo_api_connection_products.py --input_odoo_products_file '$NEW_PRODUCTS_TEMP_FILE' --output_analysis_file '$ANALYSIS_FILE_PARTIAL'" "1c. Generar lista PARCIAL de scraping (post-revisión)" || exit 1
+            run_command "python scraper/odoo_api_connection_products.py --input_odoo_products_file '$NEW_PRODUCTS_TEMP_FILE' --output_analysis_file '$ANALYSIS_FILE_PARTIAL'" "1c. Generar lista PARCIAL de scraping (post-revisión)"
+            run_command "python scraper/main.py --analysis_file '$ANALYSIS_FILE_TO_USE' --output_mode '$SCRAPER_OUTPUT_MODE' --output_file '$COMPETITORS_FILE'" "2. Ejecutar scraping (Modo: $SCRAPER_OUTPUT_MODE)"
+            run_command "python ml_model/odoo_api_cotizations.py" "3a. Obtener cotizaciones de Odoo"
+            run_command "python ml_model/odoo_api_competitor_products.py" "3b. Obtener productos de competidores de Odoo"
 
-            log_message "--- PASO 2: Ejecutando Scraping (Parcial) ---"
-            run_command "python scraper/main.py --analysis_file '$ANALYSIS_FILE_TO_USE' --output_mode '$SCRAPER_OUTPUT_MODE' --output_file '$COMPETITORS_FILE'" "2. Ejecutar scraping (Modo: $SCRAPER_OUTPUT_MODE)" || exit 1
-
-            log_message "--- PASO 3: Obteniendo Cotizaciones y Competidores Odoo ---"
-            run_command "python ml_model/odoo_api_cotizations.py" "3a. Obtener cotizaciones de Odoo" || exit 1
-            run_command "python ml_model/odoo_api_competitor_products.py" "3b. Obtener productos de competidores de Odoo" || exit 1
-
-            log_message "--- PASO 4: Asegurando Productos Odoo ---"
             if [ ! -f "$ODOO_PRODUCTS_FILE" ]; then
-                log_message "Archivo $ODOO_PRODUCTS_FILE no encontrado, ejecutando de nuevo."
-                run_command "python ml_model/odoo_api_products.py" "4. Obtener productos de Odoo" || exit 1
-            else
-                log_message "Archivo $ODOO_PRODUCTS_FILE ya existe desde Etapa 1."
+                run_command "python ml_model/odoo_api_products.py" "4. (Re)Obtener productos de Odoo"
             fi
 
-            log_message "--- PASO 5: Preprocesando Datos de Competencia ---"
-            run_command "python ml_model/1a_preprocess_data.py" "5. Preprocesar datos de competencia" || exit 1
-
-            log_message "--- PASO 6: Preparando Datos Wayakit para Predicción (Parcial) ---"
-            run_command "python ml_model/1b_preprocess_data.py --run_mode partial" "6. Preparar datos de Wayakit para predicción (Modo: partial)" || exit 1
-
-            log_message "--- PASO 7: Entrenando Modelos ML ---"
-            run_command "python ml_model/2_train_models.py" "7. Entrenar modelos ML" || exit 1
-
-            log_message "--- PASO 8: Generando Predicciones de Precios ---"
-            run_command "python ml_model/3_predicted_prices.py" "8. Generar predicciones de precios" || exit 1
-
-            log_message "--- PASO 9: Subiendo Sugerencias a Odoo (Parcial) ---"
-            run_command "python ml_model/odoo_api_price_suggestion.py --run_mode partial" "9. Subir sugerencias de precios a Odoo (Modo: partial)" || exit 1
+            run_command "python ml_model/1a_preprocess_data.py" "5. Preprocesar datos de competencia"
+            run_command "python ml_model/1b_preprocess_data.py --run_mode partial" "6. Preparar datos Wayakit (Modo: partial)"
+            run_command "python ml_model/2_train_models.py" "7. Entrenar modelos ML"
+            run_command "python ml_model/3_predicted_prices.py" "8. Generar predicciones"
+            run_command "python ml_model/odoo_api_price_suggestion.py --run_mode partial" "9. Subir sugerencias a Odoo (Modo: partial)"
         fi
     
     else
-        log_message "ERROR: Modo de ejecución '$RUN_MODE' desconocido en '$RUN_MODE_FILE'."
-        exit 1
+        log_message "ERROR: Modo de ejecución '$RUN_MODE' desconocido."
+        SHUTDOWN_SCHEDULE_TIME="02:00" # Apagado de emergencia
     fi
     # --- FIN: Flujo de EJECUCIÓN PARCIAL (Etapa 2) ---
 
     log_message "Desactivando entorno Conda."
     conda deactivate
     
-    # Limpiar el archivo de modo para la próxima ejecución
-    # rm "$RUN_MODE_FILE" 
-    
-    log_message "========================================"
+    # --- CAMBIO IMPORTANTE: Apagado programado de Etapa 2 ---
+    # --- CAMBIO: Apagado INMEDIATO de Etapa 2 ---
     log_message "Pipeline Wayakit (ETAPA 2) completado."
+    log_message "El servidor se apagará en 1 minuto."
     log_message "========================================"
+    
+    # Esto apagará la instancia EC2 inmediatamente
+    sudo shutdown -h +1
     exit 0
 fi
 # --- FIN DE ETAPA 2 ---
