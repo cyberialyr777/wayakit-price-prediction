@@ -73,7 +73,8 @@ MODEL_NAME = 'product.master'
 products_to_exclude = [
     'F12-Other consumables for FM',
     'P11-Other consumables for pets',
-    'H13-Other products, consumables or kits for homes'
+    'H13-Other products, consumables or kits for homes',
+    'C5-Other transportation products or items'
 ]
 
 domain = [
