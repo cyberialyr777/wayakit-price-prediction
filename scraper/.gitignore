@@ -12,6 +12,8 @@ __pycache__/
 # CSV and analysis files
 *.csv
 !modifiers_mapping.csv
+!analysis-odoo.csv
+!analysis-odoo_partial.csv
 
 # Environment files
 .env
