@@ -406,20 +406,24 @@
 # # --- FIN DE CAMBIOS: Condicional de Etapa 2 ---
 
 
-
 #!/bin/bash
 set -o pipefail
 
 # --- CONFIGURACIÓN ---
-PROJECT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> / dev / null && pwd ) 
-CONDA_ENV_NAME="wayakit_env" 
+PROJECT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+CONDA_ENV_NAME="wayakit_env"
 LOG_DIR="$PROJECT_DIR/logs"
 
 # --- Archivos de Estado y Logs ---
 LAST_FULL_RUN_FILE="$LOG_DIR/last_full_run.txt"
 RUN_MODE_FILE="$LOG_DIR/run_mode.txt" # Archivo de estado
-SCRIPT_LOG_FILE="$PROJECT_DIR/logs/pipeline_execution.log" 
-CONDA_BASE_PATH=$(conda info --base 2>/dev/null || echo "/home/$USER/miniconda3")
+SCRIPT_LOG_FILE="$PROJECT_DIR/logs/pipeline_execution.log"
+# --- CAMBIO IMPORTANTE: Detectar usuario (ubuntu o ec2-user) ---
+if [ -d "/home/ubuntu" ]; then
+    CONDA_BASE_PATH=$(conda info --base 2>/dev/null || echo "/home/ubuntu/miniconda3")
+else
+    CONDA_BASE_PATH=$(conda info --base 2>/dev/null || echo "/home/ec2-user/miniconda3")
+fi
 
 # --- Archivos de Datos ---
 ODOO_PRODUCTS_FILE="$PROJECT_DIR/ml_model/wayakit_products.csv"
@@ -464,7 +468,7 @@ fi
 if [ "$STAGE" == "1" ]; then
 
     IS_FULL_RUN="false"
-    NOW_TS=$(date +%s)
+    NOW_TS=$(date -u +%s)
     THREE_MONTHS_AGO_TS=$(date -u -d '3 months ago' +%s)
 
     log_message "========================================"
@@ -477,7 +481,7 @@ if [ "$STAGE" == "1" ]; then
         IS_FULL_RUN="true"
     else
         LAST_RUN_STR=$(cat "$LAST_FULL_RUN_FILE")
-        LAST_RUN_TS=$(date -d "$LAST_RUN_STR" +%s 2>/dev/null)
+        LAST_RUN_TS=$(date -u -d "$LAST_RUN_STR" +%s 2>/dev/null)
         if [ -z "$LAST_RUN_TS" ]; then
              log_message "ERROR: Formato de fecha inválido. Ejecución COMPLETA requerida."
              IS_FULL_RUN="true"
@@ -521,10 +525,9 @@ if [ "$STAGE" == "1" ]; then
     log_message "Desactivando entorno Conda."
     conda deactivate
     
-    # --- CAMBIO IMPORTANTE: Apagado automático ---
-    log_message "El servidor se apagará en 1 minuto. (Miércoles 10:30 PM)"
+    # --- Apagado automático ---
+    log_message "El servidor se apagará en 1 minuto."
     log_message "========================================"
-    # Esto apagará la instancia EC2
     sudo shutdown -h +1
     exit 0
 
@@ -561,21 +564,19 @@ if [ "$STAGE" == "2" ]; then
     conda activate "$CONDA_ENV_NAME" || { log_message "ERROR: No se pudo activar el entorno $CONDA_ENV_NAME"; exit 1; }
     log_message "Entorno Conda activado."
     
-    SHUTDOWN_SCHEDULE_TIME="02:00" # Por defecto: Viernes 2:00 AM (para Parcial)
     
     # --- INICIO: Flujo de EJECUCIÓN COMPLETA (Etapa 2) ---
     if [ "$RUN_MODE" == "full" ]; then
         log_message "Continuando con flujo COMPLETO..."
         ANALYSIS_FILE_TO_USE="$ANALYSIS_FILE_FULL"
         SCRAPER_OUTPUT_MODE="overwrite"
-        SHUTDOWN_SCHEDULE_TIME="06:00" # Sobrescribir: Sábado 6:00 AM
         
         if [ -f "$COMPETITORS_FILE" ]; then
             log_message "Limpiando archivo de competidores existente."
             rm "$COMPETITORS_FILE"
         fi
         
-        run_command "python scraper/main.py --analysis_file '$ANALYSIS_FILE_TO_USE' --output_mode '$SCRAPER_OUTPUT_MODE' --output_file '$COMPETITORS_FILE'" "2. Ejecutar scraping (Modo: $SCRAPER_OUTPUT_MODE)"
+        run_command "timeout 30h python scraper/main.py --analysis_file '$ANALYSIS_FILE_TO_USE' --output_mode '$SCRAPER_OUTPUT_MODE' --output_file '$COMPETITORS_FILE'" "2. Ejecutar scraping (Modo: $SCRAPER_OUTPUT_MODE)"
         run_command "python ml_model/odoo_api_cotizations.py" "3a. Obtener cotizaciones de Odoo"
         run_command "python ml_model/odoo_api_competitor_products.py" "3b. Obtener productos de competidores de Odoo"
         
@@ -583,11 +584,12 @@ if [ "$STAGE" == "2" ]; then
             run_command "python ml_model/odoo_api_products.py" "4. (Re)Obtener productos de Odoo"
         fi
 
-        run_command "python ml_model/1a_preprocess_data.py" "5. Preprocesar datos de competencia"
-        run_command "python ml_model/1b_preprocess_data.py --run_mode full" "6. Preparar datos Wayakit (Modo: full)"
-        run_command "python ml_model/2_train_models.py" "7. Entrenar modelos ML"
-        run_command "python ml_model/3_predicted_prices.py" "8. Generar predicciones"
-        run_command "python ml_model/odoo_api_price_suggestion.py --run_mode full" "9. Subir sugerencias a Odoo (Modo: full)"
+        # --- CAMBIO: Añadido 'timeout 1h' (1 hora) a los scripts de ML ---
+        run_command "timeout 1h python ml_model/1a_preprocess_data.py" "5. Preprocesar datos de competencia"
+        run_command "timeout 1h python ml_model/1b_preprocess_data.py --run_mode full" "6. Preparar datos Wayakit (Modo: full)"
+        run_command "timeout 1h python ml_model/2_train_models.py" "7. Entrenar modelos ML"
+        run_command "timeout 1h python ml_model/3_predicted_prices.py" "8. Generar predicciones"
+        run_command "timeout 1h python ml_model/odoo_api_price_suggestion.py --run_mode full" "9. Subir sugerencias a Odoo (Modo: full)"
 
     # --- FIN: Flujo de EJECUCIÓN COMPLETA (Etapa 2) ---
 
@@ -606,38 +608,37 @@ if [ "$STAGE" == "2" ]; then
             
             ANALYSIS_FILE_TO_USE="$ANALYSIS_FILE_PARTIAL"
             SCRAPER_OUTPUT_MODE="append"
+            # --- CAMBIO: Añadido 'timeout 4h' (4 horas) al scraping parcial ---
             run_command "python scraper/odoo_api_connection_products.py --input_odoo_products_file '$NEW_PRODUCTS_TEMP_FILE' --output_analysis_file '$ANALYSIS_FILE_PARTIAL'" "1c. Generar lista PARCIAL de scraping (post-revisión)"
-            run_command "python scraper/main.py --analysis_file '$ANALYSIS_FILE_TO_USE' --output_mode '$SCRAPER_OUTPUT_MODE' --output_file '$COMPETITORS_FILE'" "2. Ejecutar scraping (Modo: $SCRAPER_OUTPUT_MODE)"
+            run_command "timeout 4h python scraper/main.py --analysis_file '$ANALYSIS_FILE_TO_USE' --output_mode '$SCRAPER_OUTPUT_MODE' --output_file '$COMPETITORS_FILE'" "2. Ejecutar scraping (Modo: $SCRAPER_OUTPUT_MODE)"
             run_command "python ml_model/odoo_api_cotizations.py" "3a. Obtener cotizaciones de Odoo"
             run_command "python ml_model/odoo_api_competitor_products.py" "3b. Obtener productos de competidores de Odoo"
 
             if [ ! -f "$ODOO_PRODUCTS_FILE" ]; then
                 run_command "python ml_model/odoo_api_products.py" "4. (Re)Obtener productos de Odoo"
             fi
-
-            run_command "python ml_model/1a_preprocess_data.py" "5. Preprocesar datos de competencia"
-            run_command "python ml_model/1b_preprocess_data.py --run_mode partial" "6. Preparar datos Wayakit (Modo: partial)"
-            run_command "python ml_model/2_train_models.py" "7. Entrenar modelos ML"
-            run_command "python ml_model/3_predicted_prices.py" "8. Generar predicciones"
-            run_command "python ml_model/odoo_api_price_suggestion.py --run_mode partial" "9. Subir sugerencias a Odoo (Modo: partial)"
+            
+            # --- CAMBIO: Añadido 'timeout 1h' (1 hora) a los scripts de ML ---
+            run_command "timeout 1h python ml_model/1a_preprocess_data.py" "5. Preprocesar datos de competencia"
+            run_command "timeout 1h python ml_model/1b_preprocess_data.py --run_mode partial" "6. Preparar datos Wayakit (Modo: partial)"
+            run_command "timeout 1h python ml_model/2_train_models.py" "7. Entrenar modelos ML"
+            run_command "timeout 1h python ml_model/3_predicted_prices.py" "8. Generar predicciones"
+            run_command "timeout 1h python ml_model/odoo_api_price_suggestion.py --run_mode partial" "9. Subir sugerencias a Odoo (Modo: partial)"
         fi
     
     else
         log_message "ERROR: Modo de ejecución '$RUN_MODE' desconocido."
-        SHUTDOWN_SCHEDULE_TIME="02:00" # Apagado de emergencia
     fi
     # --- FIN: Flujo de EJECUCIÓN PARCIAL (Etapa 2) ---
 
     log_message "Desactivando entorno Conda."
     conda deactivate
     
-    # --- CAMBIO IMPORTANTE: Apagado programado de Etapa 2 ---
-    # --- CAMBIO: Apagado INMEDIATO de Etapa 2 ---
+    # --- Apagado INMEDIATO de Etapa 2 ---
     log_message "Pipeline Wayakit (ETAPA 2) completado."
     log_message "El servidor se apagará en 1 minuto."
     log_message "========================================"
     
-    # Esto apagará la instancia EC2 inmediatamente
     sudo shutdown -h +1
     exit 0
 fi
