@@ -20,7 +20,7 @@ class OfficeSupplyScraper:
         self.driver_path = driver_path
         self.relevance_agent = relevance_agent
         self.base_url = "https://officesupply.sa/en/"
-        self.products_to_find_limit = 1
+        self.products_to_find_limit = 8
 
     def _log(self, msg):
         logger.info(msg)

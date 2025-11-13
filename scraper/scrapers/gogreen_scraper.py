@@ -21,7 +21,7 @@ class GoGreenScraper:
         self.driver_path = driver_path
         self.relevance_agent = relevance_agent
         self.base_url = "https://gogreen.com.sa/"
-        self.products_to_find_limit = 1
+        self.products_to_find_limit = 5
 
     def _log(self, msg):
         logger.info(msg)

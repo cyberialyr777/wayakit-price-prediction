@@ -88,7 +88,7 @@ class SacoScraper:
         
         all_found_products = []
         page_num = 1
-        products_to_find_limit = 1
+        products_to_find_limit = 8
 
         service = ChromeService(executable_path=self.driver_path)
         options = webdriver.ChromeOptions()
