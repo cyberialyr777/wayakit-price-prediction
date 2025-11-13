@@ -68,6 +68,9 @@ SACO_EXCLUSIONS = [
     'fabric refresher for linen, towels, curtains, mattresses and upholstery',
     'hard floor polish',
     'streak-free glass cleaner for large window areas'
+    'general hard floor cleaner',
+    'heavy-duty toilet and urinal cleaner',
+    'food-safe surface sanitizers',
 ]
 
 # USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
