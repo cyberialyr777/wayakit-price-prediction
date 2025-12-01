@@ -57,6 +57,34 @@ def filter_outliers_with_percentiles(df_comp, metric_col, p_lower=0.10, p_upper=
     df_cleaned['approved_quote_price'] = 0.0
     return df_cleaned
 
+def save_market_stats(df_vol, df_unit, model_dir):
+    """
+    Calcula y guarda estadísticas de mercado (Min, Max, Conteo) por tipo de producto.
+    Esto servirá como 'Evidencia' para los Guardrails en Odoo.
+    """
+    logger.info("--- 5a. Saving Market Stats for Guardrails ---")
+    
+    # 1. Estadísticas Volumétricas (Precio por Litro)
+    # Agrupamos por 'type_of_product' y calculamos min, max y count
+    vol_stats = df_vol.groupby('type_of_product')['price_per_liter'].agg(
+        market_min='min', 
+        market_max='max', 
+        competitor_count='count'
+    ).reset_index()
+    
+    # 2. Estadísticas Unitarias (Precio por Pieza)
+    unit_stats = df_unit.groupby('type_of_product')['price_per_item'].agg(
+        market_min='min', 
+        market_max='max', 
+        competitor_count='count'
+    ).reset_index()
+
+    # Guardamos estos "diccionarios" en disco
+    joblib.dump(vol_stats, os.path.join(model_dir, 'vol_market_stats.joblib'))
+    joblib.dump(unit_stats, os.path.join(model_dir, 'unit_market_stats.joblib'))
+    
+    logger.info("✅ Market stats saved (Min, Max, Count per product type).")
+
 def main():
     """
     Orchestrates the entire training process: loading, preparation,
@@ -116,6 +144,7 @@ def main():
         joblib.dump(X_vol_encoded.columns.tolist(), os.path.join(model_dir, 'volumetric_model_columns.joblib'))
         joblib.dump(model_unit, os.path.join(model_dir, 'unit_model.joblib'))
         joblib.dump(X_unit_encoded.columns.tolist(), os.path.join(model_dir, 'unit_model_columns.joblib'))
+        save_market_stats(df_train_vol, df_train_unit, model_dir)
         
         logger.info("🎉 Models and columns successfully saved.")
 

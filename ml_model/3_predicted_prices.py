@@ -18,13 +18,15 @@ def load_artifacts():
         model_unit = joblib.load(os.path.join(model_dir, 'unit_model.joblib'))
         vol_cols = joblib.load(os.path.join(model_dir, 'volumetric_model_columns.joblib'))
         unit_cols = joblib.load(os.path.join(model_dir, 'unit_model_columns.joblib'))
+        vol_stats = joblib.load(os.path.join(model_dir, 'vol_market_stats.joblib'))
+        unit_stats = joblib.load(os.path.join(model_dir, 'unit_market_stats.joblib'))
         
         logger.info("✅ Models and columns loaded successfully.")
-        return model_vol, model_unit, vol_cols, unit_cols
+        return model_vol, model_unit, vol_cols, unit_cols, vol_stats, unit_stats
     except FileNotFoundError:
         logger.error(f"❌ ERROR: Model files not found in folder '{model_dir}'.")
         logger.warning("➡️ Solution: Make sure you have run '2_train_models.py' first.")
-        return None, None, None, None
+        return None, None, None, None, None, None
 
 def prepare_prediction_data():
     """Loads Wayakit products, cleans them and enriches with past quotation data."""
@@ -53,7 +55,29 @@ def prepare_prediction_data():
     logger.info(f"✅ Prepared {len(df_wayakit)} products for prediction.")
     return df_wayakit
 
-def generate_predictions(df_wayakit, model_vol, model_unit, vol_cols, unit_cols):
+def calculate_confidence(model, X):
+    """Calcula la confianza de la predicción basada en la varianza de los árboles."""
+    
+    # --- CORRECCIÓN: Convertir DataFrame a numpy array ---
+    # Esto elimina los warnings porque los árboles internos esperan solo números, no nombres.
+    X_input = X.values if hasattr(X, 'values') else X
+    
+    # model.estimators_ contiene todos los árboles de decisión
+    preds = np.array([tree.predict(X_input) for tree in model.estimators_])
+    
+    mean_pred = np.mean(preds)
+    std_dev = np.std(preds)
+    
+    if mean_pred == 0:
+        return 0.0
+        
+    cov = std_dev / mean_pred
+    
+    # Si la desviación es baja, la confianza es alta.
+    confidence = max(0, (1 - (cov * 2))) * 100
+    return round(confidence, 2)
+
+def generate_predictions(df_wayakit, model_vol, model_unit, vol_cols, unit_cols, vol_stats, unit_stats):
     """Iterates over products and generates a price prediction for each one."""
     logger.info("\n--- 3. Starting prediction generation ---")
     report_list = []
@@ -62,6 +86,10 @@ def generate_predictions(df_wayakit, model_vol, model_unit, vol_cols, unit_cols)
         # Tu lógica de predicción y regla de negocio (intacta)
         is_volumetric = pd.notna(row['Volume_Liters']) and row['Volume_Liters'] > 0
         is_unit = pd.notna(row['Pack_quantity_Units']) and row['Pack_quantity_Units'] > 0
+        confidence_score = 0.0
+        market_min = 0.0
+        market_max = 0.0
+        competitor_count = 0
         
         single_product_df = pd.DataFrame([row])
         model_predicted_price = 0
@@ -74,6 +102,14 @@ def generate_predictions(df_wayakit, model_vol, model_unit, vol_cols, unit_cols)
             X_pred_aligned = X_pred_encoded.reindex(columns=vol_cols, fill_value=0)
             predicted_price_per_unit = model_vol.predict(X_pred_aligned)[0]
             model_predicted_price = predicted_price_per_unit * row['Volume_Liters']
+            confidence_score = calculate_confidence(model_vol, X_pred_aligned)
+
+            product_type = row.get('type_of_product')
+            stat_row = vol_stats[vol_stats['type_of_product'] == product_type]
+            if not stat_row.empty:
+                market_min = stat_row.iloc[0]['market_min'] * row['Volume_Liters']
+                market_max = stat_row.iloc[0]['market_max'] * row['Volume_Liters']
+                competitor_count = int(stat_row.iloc[0]['competitor_count'])
         
         elif is_unit:
             single_product_df = single_product_df.rename(columns={'Pack_quantity_Units': 'total_quantity'})
@@ -82,6 +118,14 @@ def generate_predictions(df_wayakit, model_vol, model_unit, vol_cols, unit_cols)
             X_pred_aligned = X_pred_encoded.reindex(columns=unit_cols, fill_value=0)
             predicted_price_per_unit = model_unit.predict(X_pred_aligned)[0]
             model_predicted_price = predicted_price_per_unit * row['Pack_quantity_Units']
+            confidence_score = calculate_confidence(model_unit, X_pred_aligned)
+            
+            product_type = row.get('type_of_product')
+            stat_row = unit_stats[unit_stats['type_of_product'] == product_type]
+            if not stat_row.empty:
+                market_min = stat_row.iloc[0]['market_min'] * row['Pack_quantity_Units']
+                market_max = stat_row.iloc[0]['market_max'] * row['Pack_quantity_Units']
+                competitor_count = int(stat_row.iloc[0]['competitor_count'])
 
         cost = row['Unit_cost_SAR']
         min_profitable_price = cost * 1.30
@@ -94,7 +138,11 @@ def generate_predictions(df_wayakit, model_vol, model_unit, vol_cols, unit_cols)
             'subindustry': row.get('subindustry', 'N/A'), 'industry': row.get('industry', 'N/A'),
             'volume': f"{row['Volume_Liters']} L" if is_volumetric else f"{int(row.get('Pack_quantity_Units', 0))} units",
             'cost_per_unit': cost, 'predicted_price': round(final_price, 2),
-            'predicted_price_per_unit': round(predicted_price_per_unit, 2), 'porcentaje_de_ganancia': round(profit_margin, 2)
+            'predicted_price_per_unit': round(predicted_price_per_unit, 2), 'porcentaje_de_ganancia': round(profit_margin, 2),
+            'model_confidence': confidence_score,
+            'market_min_found': round(market_min, 2),
+            'market_max_found': round(market_max, 2),
+            'competitors_count': competitor_count,
         })
         
     return pd.DataFrame(report_list)
@@ -106,13 +154,13 @@ def main():
     logger.info("="*60)
     
     artifacts = load_artifacts()
-    if not all(artifacts): # If model loading fails, don't continue
+    if artifacts[0] is None: 
         return
         
-    model_vol, model_unit, vol_cols, unit_cols = artifacts
+    model_vol, model_unit, vol_cols, unit_cols, vol_stats, unit_stats = artifacts
     
     df_to_predict = prepare_prediction_data()
-    report_df = generate_predictions(df_to_predict, model_vol, model_unit, vol_cols, unit_cols)
+    report_df = generate_predictions(df_to_predict, model_vol, model_unit, vol_cols, unit_cols, vol_stats, unit_stats)
 
     # Save and analyze final report
     output_filename = 'ml_model/wayakit_prediction_report.csv'
