@@ -149,7 +149,7 @@ class RelevanceAgent:
                 response = requests.post(self.relevance_api_url, headers=self.headers, data=json.dumps(payload))
                 
                 if response.status_code == 429:
-                    logger.warning("      -> Rate limit hit. Waiting for 60 seconds to reset...")
+                    logger.warning(f"      -> 🛑 RATE LIMIT HIT. Google dice: {response.text}")
                     time.sleep(60)
                     continue
 
@@ -159,6 +159,7 @@ class RelevanceAgent:
                 if result.get('candidates'):
                     decision = result['candidates'][0]['content']['parts'][0]['text'].strip().lower()
                     logger.debug(f"      -> IA decision: {decision}")
+                    time.sleep(3)
                     return "yes" in decision
                 else:
                     logger.warning("      -> No candidates found in AI response.")
@@ -263,6 +264,7 @@ Title: "{product_title}"
 
                         logger.debug(f"      -> IA reasoning: {reasoning}")
                         logger.debug(f"      -> IA wipes units: {total_units}")
+                        time.sleep(3)
                         return total_units
                         
                     except (json.JSONDecodeError, KeyError, TypeError) as e:
