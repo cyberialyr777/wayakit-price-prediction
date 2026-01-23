@@ -21,7 +21,7 @@ class GoGreenScraper:
         self.driver_path = driver_path
         self.relevance_agent = relevance_agent
         self.base_url = "https://gogreen.com.sa/"
-        self.products_to_find_limit = 1
+        self.products_to_find_limit = 5
 
     def _log(self, msg):
         logger.info(msg)
@@ -103,7 +103,6 @@ class GoGreenScraper:
         options.add_experimental_option('excludeSwitches', ['enable-automation'])
         options.add_experimental_option('useAutomationExtension', False)
         options.add_argument('--disable-notifications')
-        # options.add_argument('--headless')
         options.add_argument('--headless=new')
         options.add_argument('--window-size=1920,1080')
         options.add_argument('--disable-gpu')
