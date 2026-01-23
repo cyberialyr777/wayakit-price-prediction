@@ -21,7 +21,6 @@ TARGET_MAP = {
     # 'Hotels': ['fine', 'gogreen', 'officesupply'],
     # 'Healthcare': ['fine', 'saco'],
     # 'Industrial facilities': ['fine', 'gogreen', 'officesupply'],
-    'Healthcare': ['saco'],
     'Industrial facilities': ['gogreen'],
 }
 
