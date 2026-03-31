@@ -181,3 +181,6 @@ cython_debug/
 .cursorindexingignore
 
 *.csv
+
+# Chrome profile for Mercado Libre scraper
+chrome_profile_ml/
