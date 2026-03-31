@@ -9,6 +9,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
 from log_config import get_logger
+from selenium.common.exceptions import TimeoutException
 
 logger = get_logger()
 
@@ -16,7 +17,7 @@ class AmazonScraper:
     def __init__(self, driver_path, relevance_agent):
         self.driver_path = driver_path
         self.relevance_agent = relevance_agent 
-        self.base_url = "https://www.amazon.sa"
+        self.base_url = "https://www.amazon.com.mx"
 
     def _log(self, msg):
         logger.info(msg)
@@ -79,21 +80,65 @@ class AmazonScraper:
         
         elif search_mode == 'volume':
             self._log("      [Extractor] Mode: Volume")
-            tech_fields = self._extract_from_table(soup, 'productDetails_techSpec_section_1', ['volume', 'weight'])
+            
+            # --- Source 1: Product Details Tech Spec table ---
+            tech_fields = self._extract_from_table(soup, 'productDetails_techSpec_section_1', ['volumen', 'volume', 'weight'])
+            raw_tech_volume = tech_fields.get('volumen') or tech_fields.get('volume')
+
+            # --- Source 2: Product Details Bullets table (alternative ID) ---
+            detail_fields = self._extract_from_table(soup, 'productDetails_detailBullets_sections1', ['volumen', 'volume', 'tamaño', 'size'])
+            raw_detail_volume = detail_fields.get('volumen') or detail_fields.get('volume') or detail_fields.get('tamaño') or detail_fields.get('size')
+
+            # --- Source 3: Overview table - po-item_volume ---
             item_volume_row = soup.find('tr', class_='po-item_volume')
             raw_item_volume = self._safe_get_text(item_volume_row.find('span', class_='po-break-word')) if item_volume_row else None
-            logger.debug(f"      [Debug] -> Vol: '{tech_fields['volume']}', ItemVol: '{raw_item_volume}'")
+
+            # --- Source 4: Overview table - po-unit_count ---
+            unit_count_row = soup.find('tr', class_='po-unit_count')
+            raw_unit_count = self._safe_get_text(unit_count_row.find('span', class_='po-break-word')) if unit_count_row else None
+
+            # --- Source 5: Overview table - po-size ---
+            size_row = soup.find('tr', class_='po-size')
+            raw_size = self._safe_get_text(size_row.find('span', class_='po-break-word')) if size_row else None
+
+            # --- Source 6: Detail Bullets feature div ---
+            raw_bullets_volume = None
+            bullets_div = soup.find('div', id='detailBullets_feature_div')
+            if bullets_div:
+                for span in bullets_div.find_all('span', class_='a-list-item'):
+                    span_text = span.get_text(strip=True).lower()
+                    if any(kw in span_text for kw in ['volumen', 'volume', 'tamaño', 'capacidad']):
+                        raw_bullets_volume = span.get_text(strip=True)
+                        break
+
+            logger.debug(f"      [Debug] -> TechVol: '{raw_tech_volume}', DetailVol: '{raw_detail_volume}', ItemVol: '{raw_item_volume}', UnitCount: '{raw_unit_count}', Size: '{raw_size}', Bullets: '{raw_bullets_volume}'")
 
             p_title = parse_volume_string(raw_title)
-            p_volume = parse_volume_string(tech_fields['volume'])
+            p_tech_volume = parse_volume_string(raw_tech_volume)
+            p_detail_volume = parse_volume_string(raw_detail_volume)
             p_item_volume = parse_volume_string(raw_item_volume)
+            p_unit_count = parse_volume_string(raw_unit_count)
+            p_size = parse_volume_string(raw_size)
+            p_bullets = parse_volume_string(raw_bullets_volume)
             
-            volume_sources = {'title': p_title, 'volume': p_volume, 'item_volume': p_item_volume}
+            volume_sources = {
+                'title': p_title,
+                'tech_spec': p_tech_volume,
+                'detail_table': p_detail_volume,
+                'item_volume': p_item_volume,
+                'unit_count': p_unit_count,
+                'size': p_size,
+                'bullets': p_bullets,
+            }
             valid_sources = {k: v for k, v in volume_sources.items() if v}
+            logger.debug(f"      [Debug] -> Valid sources: {list(valid_sources.keys())}")
 
+            final_data = None
+            validation_status = None
+
+            # Try to confirm with 2+ matching sources first
             if len(valid_sources) >= 2:
                 source_keys = list(valid_sources.keys())
-                final_data = None
                 for i in range(len(source_keys)):
                     for j in range(i + 1, len(source_keys)):
                         key1, key2 = source_keys[i], source_keys[j]
@@ -101,12 +146,24 @@ class AmazonScraper:
                         if abs(val1['normalized'] - val2['normalized']) < 1:
                             final_data = val1
                             validation_status = f"Confirmed by {key1.capitalize()} & {key2.capitalize()}"
-                            details['Total quantity'] = final_data['quantity']
-                            details['Unit of measurement'] = final_data['unit']
-                            details['Validation_Status'] = validation_status
                             break
                     if final_data:
                         break
+
+            # Fallback: accept a single source if no 2-source confirmation
+            if not final_data and len(valid_sources) >= 1:
+                # Prefer page sources over title
+                preferred_order = ['item_volume', 'unit_count', 'tech_spec', 'detail_table', 'size', 'bullets', 'title']
+                for key in preferred_order:
+                    if key in valid_sources:
+                        final_data = valid_sources[key]
+                        validation_status = f"Single source: {key.capitalize()}"
+                        break
+
+            if final_data:
+                details['Total quantity'] = final_data['quantity']
+                details['Unit of measurement'] = final_data['unit']
+                details['Validation_Status'] = validation_status
         
         if details.get('Total quantity', 0) > 0:
             logger.debug(f"      [Extractor] ✅ Quantity found: {details['Total quantity']} {details['Unit of measurement']} (Source: {details['Validation_Status']})")
@@ -118,8 +175,9 @@ class AmazonScraper:
     def scrape(self, keyword, search_mode):
         self._log(f"   [Amazon Scraper] Searching: '{keyword}' (Mode: {search_mode})")
         found_products = []
-        products_to_find = 40
-        search_url = f"{self.base_url}/s?k={keyword.replace(' ', '+')}&language=en_AE"
+        products_to_find = 60
+        max_pages = 7
+        search_url = f"{self.base_url}/s?k={keyword.replace(' ', '+')}"
 
         service = ChromeService(executable_path=self.driver_path)
         options = webdriver.ChromeOptions()
@@ -139,56 +197,104 @@ class AmazonScraper:
         options.add_experimental_option('excludeSwitches', ['enable-logging'])
         
         driver = webdriver.Chrome(service=service, options=options)
+        driver.set_page_load_timeout(60)
+        import time
 
         try:
-            driver.get(search_url)
-            import time; time.sleep(3)
-            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-component-type='s-search-result']")))
-            soup = BeautifulSoup(driver.page_source, 'html.parser')
-            product_containers = soup.find_all('div', {'data-component-type': 's-search-result'})
+            current_page = 1
+            current_url = search_url
 
-            for container in product_containers:
-                if len(found_products) >= products_to_find:
+            while current_page <= max_pages and len(found_products) < products_to_find:
+                self._log(f"   [Amazon Scraper] 📄 Page {current_page} - {current_url[:100]}...")
+                try:
+                    driver.get(current_url)
+                except TimeoutException:
+                    self._log(f"   [Amazon Scraper] ! Page {current_page} timed out. Stopping.")
+                    break
+                time.sleep(3)
+
+                try:
+                    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-component-type='s-search-result']")))
+                except Exception:
+                    self._log(f"   [Amazon Scraper] No search results found on page {current_page}. Stopping pagination.")
                     break
 
-                link_tag = container.find('a', class_='a-link-normal')
-                if not link_tag or 'spons' in link_tag.get('href', ''):
-                    continue
-                product_url = urljoin(self.base_url, link_tag['href'])
-                self._log(f"      > Visiting product page: {product_url[:120]}...")
-                driver.get(product_url)
-                try:
-                    WebDriverWait(driver, 10).until(EC.any_of(
-                        EC.presence_of_element_located((By.ID, "productDetails_techSpec_section_1")),
-                        EC.presence_of_element_located((By.ID, "detailBullets_feature_div")),
-                        EC.presence_of_element_located((By.CLASS_NAME, "po-item_volume"))
-                    ))
-                except Exception:
-                    logger.warning("      ! Details section not found, skipping.")
-                    continue
-                
-                product_soup = BeautifulSoup(driver.page_source, 'html.parser')
-                
-                product_details = self._extract_details_from_product_page(product_soup, search_mode, keyword)
-                product_details['URL'] = product_url
-                product_title = product_details.get('Product')
+                soup = BeautifulSoup(driver.page_source, 'html.parser')
+                product_containers = soup.find_all('div', {'data-component-type': 's-search-result'})
+                self._log(f"   [Amazon Scraper] Found {len(product_containers)} products on page {current_page}")
 
-                if not product_title:
-                    logger.warning(f"      -> DISCARDED (No title found)")
-                    continue
+                for container in product_containers:
+                    if len(found_products) >= products_to_find:
+                        break
 
-                if product_details.get('Total quantity', 0) > 0:
-                    is_relevant = self.relevance_agent.is_relevant(product_title, keyword)
-                    time.sleep(2)
+                    link_tag = container.find('a', class_='a-link-normal')
+                    if not link_tag or 'spons' in link_tag.get('href', ''):
+                        continue
+                    product_url = urljoin(self.base_url, link_tag['href'])
+                    self._log(f"      > Visiting product page: {product_url[:120]}...")
+                    try:
+                        driver.get(product_url)
+                    except TimeoutException:
+                        logger.warning("      ! Product page timed out, skipping.")
+                        continue
+                    try:
+                        WebDriverWait(driver, 10).until(
+                            EC.presence_of_element_located((By.ID, "productTitle"))
+                        )
+                        time.sleep(1)  # Let detail sections load
+                    except Exception:
+                        logger.warning("      ! Product page did not load, skipping.")
+                        continue
+                    
+                    product_soup = BeautifulSoup(driver.page_source, 'html.parser')
+                    
+                    product_details = self._extract_details_from_product_page(product_soup, search_mode, keyword)
+                    product_details['URL'] = product_url
+                    product_title = product_details.get('Product')
 
-                    if is_relevant:
-                        found_products.append(product_details)
-                        logger.info(f"      -> ✅ RELEVANT & VALID. Product saved.")
+                    if not product_title:
+                        logger.warning(f"      -> DISCARDED (No title found)")
+                        continue
+
+                    if product_details.get('Total quantity', 0) > 0:
+                        is_relevant = self.relevance_agent.is_relevant(product_title, keyword)
+                        time.sleep(2)
+
+                        if is_relevant:
+                            found_products.append(product_details)
+                            logger.info(f"      -> ✅ RELEVANT & VALID. Product saved.")
+                        else:
+                            logger.info(f"      -> DISCARDED (Not relevant by AI): {product_title[:60]}...")
                     else:
-                        logger.info(f"      -> DISCARDED (Not relevant by AI): {product_title[:60]}...")
+                        logger.info(f"      -> DISCARDED (No quantity found by extractor): {product_title[:60]}...")
+
+                # --- Pagination: look for the "Siguiente" (Next) button ---
+                if len(found_products) >= products_to_find:
+                    self._log(f"   [Amazon Scraper] ✅ Reached product limit ({products_to_find}). Stopping.")
+                    break
+
+                # Navigate back to the search results page to find the next page link
+                driver.get(current_url)
+                time.sleep(2)
+                try:
+                    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.s-pagination-container")))
+                except Exception:
+                    self._log("   [Amazon Scraper] No pagination container found. Stopping.")
+                    break
+
+                soup = BeautifulSoup(driver.page_source, 'html.parser')
+                next_link = soup.find('a', class_='s-pagination-next')
+
+                if next_link and next_link.get('href'):
+                    current_url = urljoin(self.base_url, next_link['href'])
+                    current_page += 1
+                    self._log(f"   [Amazon Scraper] ➡️ Navigating to page {current_page}...")
                 else:
-                    logger.info(f"      -> DISCARDED (No quantity found by extractor): {product_title[:60]}...")
-                
+                    self._log(f"   [Amazon Scraper] 🛑 No next page found. Pagination complete.")
+                    break
+
+            self._log(f"   [Amazon Scraper] ✅ Scraping complete. Total products found: {len(found_products)}")
+
         except Exception as e:
             logger.error(f"      ! Unexpected error occurred in Amazon scraper", exc_info=True)
         finally:

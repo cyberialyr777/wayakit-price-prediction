@@ -1,4 +1,3 @@
-    
 import pandas as pd
 import os
 import sys
@@ -27,7 +26,7 @@ def generar_lista_prediccion():
         catalogo_maestro = 'ml_model/wayakit_products.csv'
         logger.info(f"Modo FULL detectado. Usando catálogo de productos COMPLETO: '{catalogo_maestro}'")
     # --- FIN DE CAMBIOS 3 ---
-    archivo_salida = 'ml_model/wayakit_products_to_predict_odoo.csv'
+    archivo_salida = 'ml_model/products_to_predict.csv'
 
     archivos_necesarios = [archivo_volumetrico, archivo_unidades, catalogo_maestro]
     for archivo in archivos_necesarios:

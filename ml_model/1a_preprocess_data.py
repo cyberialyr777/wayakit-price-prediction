@@ -11,29 +11,20 @@ logger = get_logger()
 def load_and_clean_raw_data():
     logger.info("--- 1. Loading and cleaning raw competitor data ---")
     df_test4 = pd.read_csv('scraper/competitors_complete.csv')
-    df_prod = pd.read_csv('ml_model/competitor_products_from_odoo.csv')
-
+    
+    # Only use scraper data, no Odoo data
     df_test4_clean = df_test4[['industry', 'subindustry', 'type_of_product', 'generic_product_type', 'price_sar', 'company', 'unit_of_measurement', 'total_quantity', 'channel']].copy()
-    df_prod_clean = df_prod.rename(columns={
-        'Industry': 'industry', 'Sub industry': 'subindustry', 'Type of product': 'type_of_product',
-        'Generic product type': 'generic_product_type', 'Price per unit SAR': 'price_sar',
-        'Company': 'company', 'Unit of measurement [mL,g,units]': 'unit_of_measurement',
-        'Total quantity': 'total_quantity', 'Channel': 'channel'
-    })
-    df_prod_clean = df_prod_clean[df_test4_clean.columns]
 
     def clean_price(price_column):
         return pd.to_numeric(price_column.astype(str).str.replace('SAR', '').str.replace(',', '').str.strip(), errors='coerce')
     df_test4_clean['price_sar'] = clean_price(df_test4_clean['price_sar'])
-    df_prod_clean['price_sar'] = clean_price(df_prod_clean['price_sar'])
 
     def clean_units(unit_column):
         return unit_column.str.lower().str.strip()
     df_test4_clean['unit_of_measurement'] = clean_units(df_test4_clean['unit_of_measurement'])
-    df_prod_clean['unit_of_measurement'] = clean_units(df_prod_clean['unit_of_measurement'])
     
-    competitor_data = pd.concat([df_test4_clean, df_prod_clean], ignore_index=True)
-    logger.info(f"✅ Raw data combined. Total: {len(competitor_data)} rows.")
+    competitor_data = df_test4_clean
+    logger.info(f"✅ Raw data loaded. Total: {len(competitor_data)} rows.")
     return competitor_data
 
 def process_volumetric_data(df):

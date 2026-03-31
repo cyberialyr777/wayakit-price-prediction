@@ -2,52 +2,20 @@ import os
 import json
 import requests
 import time
-import boto3
-import base64
-from botocore.exceptions import ClientError
+from dotenv import load_dotenv
 from log_config import get_logger
 
 logger = get_logger()
 
-def get_secret(secret_name, region_name="me-south-1"):
-    session = boto3.session.Session()
-    client = session.client(
-        service_name='secretsmanager',
-        region_name=region_name
-    )
-
-    try:
-        get_secret_value_response = client.get_secret_value(
-            SecretId=secret_name
-        )
-    except ClientError as e:
-        logger.error(f"Error getting secret '{secret_name}'", exc_info=True)
-        raise e
-    else:
-        if 'SecretString' in get_secret_value_response:
-            secret = get_secret_value_response['SecretString']
-            return json.loads(secret)
-        else:
-            decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
-            return json.loads(decoded_binary_secret)
-
 class RelevanceAgent:
     def __init__(self):
-        SECRET_NAME = "wayakit/test/credentials" 
-        AWS_REGION = "me-south-1" 
+        load_dotenv()
+        self.api_key = os.getenv('GEMINI_API_KEY')
 
-        try:
-            secrets = get_secret(SECRET_NAME, AWS_REGION)
-            self.api_key = secrets.get('GEMINI_API_KEY')
-
-            if not self.api_key:
-                logger.error("ERROR: GEMINI_API_KEY not found in AWS Secrets Manager.")
-            else:
-                logger.info("GEMINI_API_KEY loaded successfully from AWS Secrets Manager.")
-
-        except Exception as e:
-            logger.error(f"CRITICAL ERROR: Could not load GEMINI_API_KEY from Secrets Manager.", exc_info=True)
-            self.api_key = None
+        if not self.api_key:
+            logger.error("ERROR: GEMINI_API_KEY not found in .env file.")
+        else:
+            logger.info("GEMINI_API_KEY loaded successfully from .env file.")
 
         if not self.api_key:
             logger.warning("API KEY not found")
@@ -71,6 +39,27 @@ class RelevanceAgent:
         4.  **Specialized Surfaces:** If the query asks for a cleaner for a specific surface (e.g., "hardwood floor cleaner"), you MUST REJECT general-purpose or multi-surface cleaners. The product must be explicitly for that surface.
         5.  **Specialized Products:** If the query is for a specialized product (e.g., "wax and floor polish," "waterless car wash"), you MUST REJECT general cleaners. The product title must clearly indicate it performs that specific function.
         6.  **Automotive Focus:** If the query is for a car cleaning product (e.g., "microfiber for vehicle," "car disinfectant rags"), you MUST REJECT general-purpose products. The product must be explicitly marketed for automotive use.
+
+        ## Multi-pack & Quantity Rules:
+        7.  **Multi-packs of same product:** If the product title indicates a pack of 2 or more of the same product (e.g., "2 pack", "paquete de 2", "2 unidades", "x2", "Pack of 3", "kit de 3"), you MUST REJECT it. Only accept individual, single-unit products. Exception: a single can/bottle that contains multiple uses is acceptable.
+
+        ## Product Category Rules:
+        8.  **Surface Disinfectant Focus:** If the query is for a surface disinfectant (e.g., "desinfectante superficies", "desinfectante"), you MUST REJECT:
+            - Food/vegetable disinfectants ("agua y alimentos", "frutas y verduras", "alimentos")
+            - Toilet/bathroom-specific cleaners ("para inodoros", "sanitarios", "para baño")
+            - Baby product disinfectants ("para bebé", "chupones", "juguetes de bebé", "biberones")
+            - Surgical/medical disinfectants ("quirúrgico", "material de curación", "podología")
+            - Pure bleach/chlorine products that are NOT surface cleaners ("cloro blanqueador", "blanqueador")
+            The product must be a general-purpose surface disinfectant or multi-surface cleaner/disinfectant.
+
+        9.  **Kitchen Degreaser Focus:** If the query is for a degreaser (e.g., "desengrasante", "desengrasante cocina"), you MUST REJECT:
+            - Dish soaps / dishwashing liquids ("lavatrastes", "para trastes", "dish soap", "jabón para platos")
+            - Automotive/motorcycle/bicycle degreasers ("para vehículo", "motor", "automotriz", "bicicleta", "cadena", "rines")
+            - Hand degreasers/cleaners ("para manos", "hand cleaner")
+            - Industrial-only degreasers for non-kitchen machinery ("maquinaria", "taller mecánico", "frenos")
+            Only accept kitchen/household surface degreasers.
+
+        10. **Pet-Specific Products:** If the query includes "para mascotas", "pets", "perro", or "gato", you MUST REJECT general-purpose products that are not specifically marketed for pets/animals. The product must explicitly mention pets, dogs, cats, or animal use in its title.
 
         ## Final Instruction:
         Respond with only "Yes" or "No".
@@ -125,6 +114,54 @@ class RelevanceAgent:
         Is the product a relevant match for the query?
         No
 
+        # Example (Multi-pack - REJECT)
+        User Search Query: "spray para ropa quitamanchas"
+        Product Title: "Downy Wrinkle Releaser, 3 oz-2 pack"
+        Is the product a relevant match for the query?
+        No
+
+        # Example (Food disinfectant - REJECT)
+        User Search Query: "desinfectante superficies"
+        Product Title: "Desinfectante para agua y alimentos Plata 500ml"
+        Is the product a relevant match for the query?
+        No
+
+        # Example (Toilet cleaner - REJECT)
+        User Search Query: "desinfectante superficies"
+        Product Title: "Harpic Líquido Desinfectante para Inodoros Power Ultra 750 ml"
+        Is the product a relevant match for the query?
+        No
+
+        # Example (Baby disinfectant - REJECT)
+        User Search Query: "desinfectante superficies"
+        Product Title: "OH! GANICS Desinfectante para Juguetes Chupones y Utensilios de Bebé 100 ml"
+        Is the product a relevant match for the query?
+        No
+
+        # Example (Surface disinfectant - ACCEPT)
+        User Search Query: "desinfectante superficies"
+        Product Title: "Lysol Desinfectante Multiusos en Spray 650 ml"
+        Is the product a relevant match for the query?
+        Yes
+
+        # Example (Dish soap as degreaser - REJECT)
+        User Search Query: "desengrasante cocina"
+        Product Title: "Axion Lavatrastes Líquido Xtreme 2.8 L Arrancagrasa"
+        Is the product a relevant match for the query?
+        No
+
+        # Example (Automotive degreaser - REJECT)
+        User Search Query: "desengrasante cocina"
+        Product Title: "Foam Degreaser 500 mL Desengrasante para Bicicleta y Moto"
+        Is the product a relevant match for the query?
+        No
+
+        # Example (Kitchen degreaser - ACCEPT)
+        User Search Query: "desengrasante cocina"
+        Product Title: "Brasso Cocina Desengrasante sin Esfuerzo con Atomizador, Naranja, 650ml"
+        Is the product a relevant match for the query?
+        Yes
+
         --- END EXAMPLES ---
 
         --- CURRENT TASK ---
@@ -133,6 +170,7 @@ class RelevanceAgent:
 
         Is the product a relevant match for the query?
         """
+
 
     def is_relevant(self, product_name, search_query):
         if not self.api_key:
