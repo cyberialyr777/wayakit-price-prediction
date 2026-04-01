@@ -8,7 +8,7 @@ CSV_COLUMNS = [
 
 TARGET_MAP = {
     # 'Home': ['amazon', 'chedraui'],
-    'Pets': ['amazon', 'petco' 'chedraui'],
+    'Pets': ['amazon', 'petco', 'chedraui'],
 }
 
 # Productos a excluir de Chedraui (usar el valor de "Type of product")
