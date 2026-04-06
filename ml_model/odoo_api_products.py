@@ -11,7 +11,7 @@ from log_config import get_logger
 
 logger = get_logger()
 
-def get_secret(secret_name, region_name="me-south-1"):
+def get_secret(secret_name, region_name="eu-north-1"):
     session = boto3.session.Session()
     client = session.client(
         service_name='secretsmanager',
@@ -32,8 +32,8 @@ def get_secret(secret_name, region_name="me-south-1"):
             decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
             return json.loads(decoded_binary_secret)
 
-SECRET_NAME = "wayakit/test/credentials" 
-AWS_REGION = "me-south-1" 
+SECRET_NAME = "prod/wayakit-app" 
+AWS_REGION = "eu-north-1" 
 
 try:
     secrets = get_secret(SECRET_NAME, AWS_REGION)

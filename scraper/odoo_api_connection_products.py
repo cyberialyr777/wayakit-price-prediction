@@ -14,7 +14,7 @@ from log_config import get_logger
 
 logger = get_logger()
 
-def get_secret(secret_name, region_name="me-south-1"):
+def get_secret(secret_name, region_name="eu-north-1"):
     session = boto3.session.Session()
     client = session.client(service_name='secretsmanager', region_name=region_name)
     try:
@@ -40,8 +40,8 @@ parser.add_argument('--modifiers_file', default='scraper/modifiers_mapping.csv',
                     help="Archivo CSV con mapeo de modificadores de búsqueda.")
 args = parser.parse_args()
 
-SECRET_NAME = "wayakit/test/credentials"
-AWS_REGION = "me-south-1"
+SECRET_NAME = "prod/wayakit-app"
+AWS_REGION = "eu-north-1"
 try:
     secrets = get_secret(SECRET_NAME, AWS_REGION)
     ODOO_URL = secrets.get('ODOO_URL')

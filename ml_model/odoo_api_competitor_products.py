@@ -14,7 +14,7 @@ from log_config import get_logger
 logger = get_logger() # Use specific logger name for this module
 
 # --- AWS Secrets Manager ---
-def get_secret(secret_name, region_name="me-south-1"):
+def get_secret(secret_name, region_name="eu-north-1"):
     session = boto3.session.Session()
     client = session.client(
         service_name='secretsmanager',
@@ -41,8 +41,8 @@ def get_secret(secret_name, region_name="me-south-1"):
             logger.error(f"Secret '{secret_name}' retrieved but contains no SecretString or SecretBinary.")
             return None
 
-SECRET_NAME = "wayakit/test/credentials"
-AWS_REGION = "me-south-1"
+SECRET_NAME = "prod/wayakit-app"
+AWS_REGION = "eu-north-1"
 
 try:
     secrets = get_secret(SECRET_NAME, AWS_REGION)
