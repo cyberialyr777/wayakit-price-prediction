@@ -69,11 +69,44 @@ def calculate_confidence(model, X):
     confidence = max(0, (1 - (cov * 2))) * 100
     return round(confidence, 2)
 
-def generate_predictions(df_wayakit, model_vol, model_unit, vol_cols, unit_cols, vol_stats, unit_stats):
+def load_competitor_data():
+    """Loads raw competitor data for volume-aware median calculation."""
+    vol_data = pd.read_csv('ml_model/competitor_volumetric_processed.csv')
+    unit_data = pd.read_csv('ml_model/competitor_unit_processed.csv')
+    return vol_data, unit_data
+
+def get_volume_aware_median(competitor_df, product_type, target_volume, metric_col, volume_col, tolerance=0.5):
+    """
+    Calculates median price/L from competitors with SIMILAR volume.
+    Uses a tolerance range: target_volume * (1 - tolerance) to target_volume * (1 + tolerance).
+    Falls back to wider ranges if too few matches, and finally to all data for that product type.
+    """
+    type_data = competitor_df[competitor_df['type_of_product'] == product_type]
+    if type_data.empty:
+        return None
+
+    # Try progressively wider ranges: 50%, 100%, 200%, then all
+    for tol in [tolerance, 1.0, 2.0, None]:
+        if tol is None:
+            nearby = type_data
+        else:
+            low = target_volume * (1 - tol)
+            high = target_volume * (1 + tol)
+            nearby = type_data[(type_data[volume_col] >= low) & (type_data[volume_col] <= high)]
+
+        if len(nearby) >= 3:
+            return nearby[metric_col].median()
+
+    # Absolute fallback: use all data for this product type
+    return type_data[metric_col].median()
+
+def generate_predictions(df_wayakit, model_vol, model_unit, vol_cols, unit_cols, vol_stats, unit_stats, vol_comp_data, unit_comp_data):
     """Iterates over products and generates a price prediction for each one."""
     logger.info("\n--- 3. Starting prediction generation ---")
-    report_list = []
-
+    
+    # PASS 1: Generate raw model predictions for all products
+    raw_predictions = []
+    
     for _, row in df_wayakit.iterrows():
         is_volumetric = pd.notna(row['Volume_Liters']) and row['Volume_Liters'] > 0
         is_unit = pd.notna(row['Pack_quantity_Units']) and row['Pack_quantity_Units'] > 0
@@ -81,15 +114,19 @@ def generate_predictions(df_wayakit, model_vol, model_unit, vol_cols, unit_cols,
         market_min = 0.0
         market_max = 0.0
         competitor_count = 0
-        
-        single_product_df = pd.DataFrame([row])
         model_predicted_price = 0
         predicted_price_per_unit = 0
+        stat_row = pd.DataFrame()
+        volume_numeric = 0
+
+        single_product_df = pd.DataFrame([row])
 
         if is_volumetric:
+            volume_numeric = row['Volume_Liters']
             single_product_df = single_product_df.rename(columns={'Volume_Liters': 'volume_liters'})
-            features_to_encode = ['volume_liters', 'type_of_product', 'subindustry', 'company', 'channel']
-            X_pred_encoded = pd.get_dummies(single_product_df[features_to_encode], columns=['type_of_product', 'subindustry', 'company', 'channel'])
+            single_product_df['log_volume'] = np.log1p(single_product_df['volume_liters'])
+            features_to_encode = ['log_volume', 'type_of_product', 'subindustry', 'channel']
+            X_pred_encoded = pd.get_dummies(single_product_df[features_to_encode], columns=['type_of_product', 'subindustry', 'channel'])
             X_pred_aligned = X_pred_encoded.reindex(columns=vol_cols, fill_value=0)
             predicted_price_per_unit = model_vol.predict(X_pred_aligned)[0]
             model_predicted_price = predicted_price_per_unit * row['Volume_Liters']
@@ -103,9 +140,11 @@ def generate_predictions(df_wayakit, model_vol, model_unit, vol_cols, unit_cols,
                 competitor_count = int(stat_row.iloc[0]['competitor_count'])
         
         elif is_unit:
+            volume_numeric = row['Pack_quantity_Units']
             single_product_df = single_product_df.rename(columns={'Pack_quantity_Units': 'total_quantity'})
-            features_to_encode = ['total_quantity', 'type_of_product', 'subindustry', 'company', 'channel']
-            X_pred_encoded = pd.get_dummies(single_product_df[features_to_encode], columns=['type_of_product', 'subindustry', 'company', 'channel'])
+            single_product_df['log_quantity'] = np.log1p(single_product_df['total_quantity'])
+            features_to_encode = ['log_quantity', 'type_of_product', 'subindustry', 'channel']
+            X_pred_encoded = pd.get_dummies(single_product_df[features_to_encode], columns=['type_of_product', 'subindustry', 'channel'])
             X_pred_aligned = X_pred_encoded.reindex(columns=unit_cols, fill_value=0)
             predicted_price_per_unit = model_unit.predict(X_pred_aligned)[0]
             model_predicted_price = predicted_price_per_unit * row['Pack_quantity_Units']
@@ -118,26 +157,93 @@ def generate_predictions(df_wayakit, model_vol, model_unit, vol_cols, unit_cols,
                 market_max = stat_row.iloc[0]['market_max'] * row['Pack_quantity_Units']
                 competitor_count = int(stat_row.iloc[0]['competitor_count'])
 
-        # Removed 30% profit rule as requested. Prediction is purely from model.
-        final_price = model_predicted_price
-        
-        # Calculate profit margin if cost is available, just for reporting
-        cost = row.get('Unit_cost_SAR', 0)
-        profit_margin = ((final_price - cost) / cost) * 100 if cost > 0 else 0
-        report_list.append({
-            'Product_ID': row['Product_ID'], 'product_name': row['Product_Name'],
-            'product_type': row.get('type_of_product', 'N/A'), 'generic_product_type': row.get('generic_product_type', 'N/A'),
-            'subindustry': row.get('subindustry', 'N/A'), 'industry': row.get('industry', 'N/A'),
-            'volume': f"{row['Volume_Liters']} L" if is_volumetric else f"{int(row.get('Pack_quantity_Units', 0))} units",
-            'cost_per_unit': cost, 'predicted_price': round(final_price, 2),
-            'reference_price_per_liter_or_item': round(predicted_price_per_unit, 2), 'porcentaje_de_ganancia': round(profit_margin, 2),
-            'model_confidence': confidence_score,
-            'market_min_found': round(market_min, 2),
-            'market_max_found': round(market_max, 2),
-            'competitors_count': competitor_count,
+        raw_predictions.append({
+            'row': row,
+            'is_volumetric': is_volumetric,
+            'is_unit': is_unit,
+            'volume_numeric': volume_numeric,
+            'model_predicted_price': model_predicted_price,
+            'predicted_price_per_unit': predicted_price_per_unit,
+            'confidence_score': confidence_score,
+            'market_min': market_min,
+            'market_max': market_max,
+            'competitor_count': competitor_count,
+            'product_type': row.get('type_of_product', 'N/A'),
         })
+
+    # PASS 2: Apply smart fallback per product type
+    logger.info("--- 3b. Applying extrapolation for low-confidence sizes ---")
+    report_list = []
+    
+    # Process predictions by product type, sorted by volume
+    product_types = set([p['product_type'] for p in raw_predictions])
+    
+    for pt in product_types:
+        preds = [p for p in raw_predictions if p['product_type'] == pt]
+        preds.sort(key=lambda x: x['volume_numeric'])
         
-    return pd.DataFrame(report_list)
+        last_confident_price_per_unit = None
+        last_confident_volume = None
+        
+        for p in preds:
+            row = p['row']
+            final_price = p['model_predicted_price']
+            prediction_source = 'model'
+            confidence = p['confidence_score']
+            
+            is_confident = confidence >= 30.0
+            
+            if is_confident:
+                last_confident_price_per_unit = p['predicted_price_per_unit']
+                last_confident_volume = p['volume_numeric']
+            else:
+                if last_confident_price_per_unit is not None and last_confident_volume is not None and last_confident_volume > 0:
+                    # Extrapolation via power law: Price = Anchor_Price * (Vol / Anchor_Vol)^0.85
+                    # This gently lowers the per-liter price for larger volumes
+                    anchor_total_price = last_confident_price_per_unit * last_confident_volume
+                    volume_ratio = p['volume_numeric'] / last_confident_volume
+                    
+                    final_price = anchor_total_price * (volume_ratio ** 0.85)
+                    prediction_source = 'extrapolated'
+                    logger.warning(
+                        f"  Extrapolated '{row['Product_Name']}' ({p['volume_numeric']}L) "
+                        f"from anchor {last_confident_volume}L: ${final_price:.2f}"
+                    )
+                else:
+                    prediction_source = 'model_low_conf'
+                    logger.warning(f"  Low confidence ({confidence}%) for '{row['Product_Name']}' but no anchor found. Using model.")
+            
+            cost = row.get('Unit_cost_SAR', 0)
+            
+            # --- PROFIT MARGIN RULE ---
+            # Si el costo existe, verificamos que la ganancia sea al menos del 30%
+            if pd.notna(cost) and cost > 0:
+                if final_price < (cost * 1.30):
+                    logger.warning(f"  [Margin Rule] {row['Product_Name']} {row['Volume_Liters']}L no cumple el 30% de ganancia. Forzando 20% sobre costo.")
+                    final_price = cost * 1.30 # Forzar a 20% a partir del costo, como indicó el usuario
+                    prediction_source = prediction_source + '_margin_forced'
+
+            profit_margin = ((final_price - cost) / cost) * 100 if pd.notna(cost) and cost > 0 else 0
+            
+            report_list.append({
+                'Product_ID': row['Product_ID'], 'product_name': row['Product_Name'],
+                'product_type': p['product_type'], 'generic_product_type': row.get('generic_product_type', 'N/A'),
+                'subindustry': row.get('subindustry', 'N/A'), 'industry': row.get('industry', 'N/A'),
+                'volume': f"{row['Volume_Liters']} L" if p['is_volumetric'] else f"{int(row.get('Pack_quantity_Units', 0))} units",
+                'cost_per_unit': cost, 'predicted_price': round(final_price, 2),
+                'reference_price_per_liter_or_item': round(final_price / p['volume_numeric'], 2) if p['volume_numeric'] > 0 else 0,
+                'porcentaje_de_ganancia': round(profit_margin, 2),
+                'model_confidence': confidence,
+                'prediction_source': prediction_source,
+                'market_min_found': round(p['market_min'], 2),
+                'market_max_found': round(p['market_max'], 2),
+                'competitors_count': p['competitor_count'],
+            })
+            
+    # Sort the final report by Product_ID for consistency
+    report_df = pd.DataFrame(report_list).sort_values('Product_ID')
+    return report_df
+
 
 def main():
     """Orchestrates the complete prediction and report generation process."""
@@ -151,8 +257,12 @@ def main():
         
     model_vol, model_unit, vol_cols, unit_cols, vol_stats, unit_stats = artifacts
     
+    # Load raw competitor data for volume-aware median fallback
+    vol_comp_data, unit_comp_data = load_competitor_data()
+    
     df_to_predict = prepare_prediction_data()
-    report_df = generate_predictions(df_to_predict, model_vol, model_unit, vol_cols, unit_cols, vol_stats, unit_stats)
+    report_df = generate_predictions(df_to_predict, model_vol, model_unit, vol_cols, unit_cols, vol_stats, unit_stats, vol_comp_data, unit_comp_data)
+
 
     # Save and analyze final report
     output_filename = 'ml_model/wayakit_prediction_report.csv'

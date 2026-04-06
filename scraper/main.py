@@ -173,7 +173,11 @@ def main():
                             for keyword_to_use in keywords_to_use:
                                 logger.info(f"   -> Buscando en '{site_name}' con keyword: '{keyword_to_use}'")
                                 try:
-                                    found_products = scraper.scrape(keyword_to_use, search_mode)
+                                    # Pass max_price filter for Amazon to exclude expensive imports
+                                    if site_name == 'amazon':
+                                        found_products = scraper.scrape(keyword_to_use, search_mode, max_price=config.AMAZON_MAX_PRICE)
+                                    else:
+                                        found_products = scraper.scrape(keyword_to_use, search_mode)
                                 except Exception as scrape_error:
                                      logger.error(f"Error durante scraping de '{site_name}' con keyword '{keyword_to_use}'.", exc_info=True)
                                      found_products = []

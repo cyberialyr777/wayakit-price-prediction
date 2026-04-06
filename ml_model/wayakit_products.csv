@@ -1,27 +1,27 @@
-﻿Product_ID,Product_Name,Type_of_product,Generic product type,SubIndustry,Industry,Volume_Liters,Pack_quantity_Units,Unit_cost_SAR
-1,Wayakit Lavado en seco Pocket,P1-Lavado en seco para mascotas,Eliminador de olores,Pets,Pets,0.06,0,0
-3,Wayakit Lavado en seco,P1-Lavado en seco para mascotas,Eliminador de olores,Pets,Pets,0.100,0,0
-4,Wayakit Lavado en seco,P1-Lavado en seco para mascotas,Eliminador de olores,Pets,Pets,0.125,0,0
-5,Wayakit Lavado en seco,P1-Lavado en seco para mascotas,Eliminador de olores,Pets,Pets,0.250,0,0
-6,Wayakit Lavado en seco,P1-Lavado en seco para mascotas,Eliminador de olores,Pets,Pets,0.500,0,0
-7,Wayakit Lavado en seco Spray,P1-Lavado en seco para mascotas,Eliminador de olores,Pets,Pets,1,0,0
-8,Wayakit Lavado en seco,P1-Lavado en seco para mascotas,Eliminador de olores,Pets,Pets,5,0,0
-9,Wayakit Lavado en seco,P1-Lavado en seco para mascotas,Eliminador de olores,Pets,Pets,20,0,0
-10,Wayakit Eliminador Olores,P2-Eliminador de olores para mascotas,Eliminador de olores,Pets,Pets,0.06,0,0
-11,Wayakit Eliminador Olores,P2-Eliminador de olores para mascotas,Eliminador de olores,Pets,Pets,0.250,0,0
-12,Wayakit Eliminador Olores,P2-Eliminador de olores para mascotas,Eliminador de olores,Pets,Pets,1,0,0
-13,Wayakit Desinfectante Pocket,P1-Desinfectante para mascotas,Desinfectante y limpiador,Pets,Pets,0.06,0,0
-14,Wayakit Desinfectante,P3-Desinfectante para mascotas,Desinfectante y limpiador,Pets,Pets,0.100,0,0
-15,Wayakit Desinfectante,P3-Desinfectante para mascotas,Desinfectante y limpiador,Pets,Pets,0.125,0,0
-16,Wayakit Desinfectante,P3-Desinfectante para mascotas,Desinfectante y limpiador,Pets,Pets,0.250,0,0
-17,Wayakit Desinfectante,P3-Desinfectante para mascotas,Desinfectante y limpiador,Pets,Pets,0.500,0,0
-18,Wayakit Desinfectante Spray,P3-Desinfectante para mascotas,Desinfectante y limpiador,Pets,Pets,1,0,0
-19,Wayakit Desinfectante,P3-Desinfectante para mascotas,Desinfectante y limpiador,Pets,Pets,5,0,0
-20,Wayakit Desinfectante,P3-Desinfectante para mascotas,Desinfectante y limpiador,Pets,Pets,20,0,0
-21,Wayakit Desinfectante,H8-Desinfectante,Desinfectante y limpiador,Home,Home,0.06,0,0
-22,Wayakit Desinfectante,H8-Desinfectante,Desinfectante y limpiador,Home,Home,0.250,0,0
-23,Wayakit Desinfectante,H8-Desinfectante,Desinfectante y limpiador,Home,Home,1,0,0
-24,Wayakit Spray Ropa,H9-Spray para ropa,Removedor de manchas,Home,Home,0.06,0,0
-25,Wayakit Spray Ropa,H9-Spray para ropa,Removedor de manchas,Home,Home,0.250,0,0
-26,Wayakit Spray Ropa,H9-Spray para ropa,Removedor de manchas,Home,Home,1,0,0
-27,Wayakit Desengrasante,H3-Desengrasante,Desengrasante,Home,Home,1,0,0
+Product_ID,Product_Name,Type_of_product,Generic product type,SubIndustry,Industry,Volume_Liters,Pack_quantity_Units,Unit_cost_SAR
+1,Wayakit Lavado en seco Pocket,P1-Lavado en seco para mascotas,Eliminador de olores,Pets,Pets,0.06,0,21.44
+3,Wayakit Lavado en seco,P1-Lavado en seco para mascotas,Eliminador de olores,Pets,Pets,0.1,0,24.02
+4,Wayakit Lavado en seco,P1-Lavado en seco para mascotas,Eliminador de olores,Pets,Pets,0.125,0,26.72
+5,Wayakit Lavado en seco,P1-Lavado en seco para mascotas,Eliminador de olores,Pets,Pets,0.25,0,31.71
+6,Wayakit Lavado en seco,P1-Lavado en seco para mascotas,Eliminador de olores,Pets,Pets,0.5,0,30.81
+7,Wayakit Lavado en seco Spray,P1-Lavado en seco para mascotas,Eliminador de olores,Pets,Pets,1.0,0,46.81
+8,Wayakit Lavado en seco,P1-Lavado en seco para mascotas,Eliminador de olores,Pets,Pets,5.0,0,92.48
+9,Wayakit Lavado en seco,P1-Lavado en seco para mascotas,Eliminador de olores,Pets,Pets,20.0,0,268.34
+10,Wayakit Eliminador Olores,P2-Eliminador de olores para mascotas,Eliminador de olores,Pets,Pets,0.06,0,0.0
+11,Wayakit Eliminador Olores,P2-Eliminador de olores para mascotas,Eliminador de olores,Pets,Pets,0.25,0,0.0
+12,Wayakit Eliminador Olores,P2-Eliminador de olores para mascotas,Eliminador de olores,Pets,Pets,1.0,0,0.0
+13,Wayakit Desinfectante Pocket,P1-Desinfectante para mascotas,Desinfectante y limpiador,Pets,Pets,0.06,0,0.0
+14,Wayakit Desinfectante,P3-Desinfectante para mascotas,Desinfectante y limpiador,Pets,Pets,0.1,0,0.0
+15,Wayakit Desinfectante,P3-Desinfectante para mascotas,Desinfectante y limpiador,Pets,Pets,0.125,0,0.0
+16,Wayakit Desinfectante,P3-Desinfectante para mascotas,Desinfectante y limpiador,Pets,Pets,0.25,0,0.0
+17,Wayakit Desinfectante,P3-Desinfectante para mascotas,Desinfectante y limpiador,Pets,Pets,0.5,0,0.0
+18,Wayakit Desinfectante Spray,P3-Desinfectante para mascotas,Desinfectante y limpiador,Pets,Pets,1.0,0,0.0
+19,Wayakit Desinfectante,P3-Desinfectante para mascotas,Desinfectante y limpiador,Pets,Pets,5.0,0,0.0
+20,Wayakit Desinfectante,P3-Desinfectante para mascotas,Desinfectante y limpiador,Pets,Pets,20.0,0,0.0
+21,Wayakit Desinfectante,H8-Desinfectante,Desinfectante y limpiador,Home,Home,0.06,0,0.0
+22,Wayakit Desinfectante,H8-Desinfectante,Desinfectante y limpiador,Home,Home,0.25,0,0.0
+23,Wayakit Desinfectante,H8-Desinfectante,Desinfectante y limpiador,Home,Home,1.0,0,0.0
+24,Wayakit Spray Ropa,H9-Spray para ropa,Removedor de manchas,Home,Home,0.06,0,0.0
+25,Wayakit Spray Ropa,H9-Spray para ropa,Removedor de manchas,Home,Home,0.25,0,0.0
+26,Wayakit Spray Ropa,H9-Spray para ropa,Removedor de manchas,Home,Home,1.0,0,0.0
+27,Wayakit Desengrasante,H3-Desengrasante,Desengrasante,Home,Home,1.0,0,0.0

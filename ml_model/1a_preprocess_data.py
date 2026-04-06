@@ -2,9 +2,14 @@ import pandas as pd
 import numpy as np
 import os
 import sys
-# Añadir el directorio raíz al path para poder importar log_config
+# Add directories to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'scraper'))
 from log_config import get_logger
+try:
+    import config
+except ImportError:
+    config = None
 
 logger = get_logger()
 
@@ -12,8 +17,8 @@ def load_and_clean_raw_data():
     logger.info("--- 1. Loading and cleaning raw competitor data ---")
     df_test4 = pd.read_csv('scraper/competitors_complete.csv')
     
-    # Only use scraper data, no Odoo data
-    df_test4_clean = df_test4[['industry', 'subindustry', 'type_of_product', 'generic_product_type', 'price_sar', 'company', 'unit_of_measurement', 'total_quantity', 'channel']].copy()
+    # Keep source column for weighting in the model
+    df_test4_clean = df_test4[['industry', 'subindustry', 'type_of_product', 'generic_product_type', 'price_sar', 'company', 'unit_of_measurement', 'total_quantity', 'channel', 'source']].copy()
 
     def clean_price(price_column):
         return pd.to_numeric(price_column.astype(str).str.replace('SAR', '').str.replace(',', '').str.strip(), errors='coerce')
@@ -23,8 +28,19 @@ def load_and_clean_raw_data():
         return unit_column.str.lower().str.strip()
     df_test4_clean['unit_of_measurement'] = clean_units(df_test4_clean['unit_of_measurement'])
     
+    # Filter Amazon products by max price to remove expensive imports
+    amazon_max = getattr(config, 'AMAZON_MAX_PRICE', None)
+    if amazon_max is not None:
+        before = len(df_test4_clean)
+        df_test4_clean = df_test4_clean[
+            ~((df_test4_clean['source'] == 'amazon') & (df_test4_clean['price_sar'] > amazon_max))
+        ].copy()
+        removed = before - len(df_test4_clean)
+        if removed > 0:
+            logger.info(f"Filtered {removed} Amazon products above ${amazon_max} MXN.")
+    
     competitor_data = df_test4_clean
-    logger.info(f"✅ Raw data loaded. Total: {len(competitor_data)} rows.")
+    logger.info(f"[OK] Raw data loaded. Total: {len(competitor_data)} rows.")
     return competitor_data
 
 def process_volumetric_data(df):
@@ -48,7 +64,7 @@ def process_volumetric_data(df):
     df.dropna(subset=['price_per_liter'], inplace=True)
     
     df.to_csv('ml_model/competitor_volumetric_processed.csv', index=False)
-    logger.info("✅ File 'competitor_volumetric_processed.csv' saved.")
+    logger.info("[OK] File 'competitor_volumetric_processed.csv' saved.")
 
 def process_unit_data(df):
     logger.info("--- 2b. Processing unit products ---")
@@ -61,7 +77,7 @@ def process_unit_data(df):
     df.dropna(subset=['price_per_item'], inplace=True)
     
     df.to_csv('ml_model/competitor_unit_processed.csv', index=False)
-    logger.info("✅ File 'competitor_unit_processed.csv' saved.")
+    logger.info("[OK] File 'competitor_unit_processed.csv' saved.")
 
 def main():
     try:

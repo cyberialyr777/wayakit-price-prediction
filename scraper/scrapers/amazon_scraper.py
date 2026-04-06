@@ -40,7 +40,7 @@ class AmazonScraper:
         return results
 
     
-    def _extract_details_from_product_page(self, soup, search_mode, keyword):
+    def _extract_details_from_product_page(self, soup, search_mode, keyword, fallback_price=None):
         details = {
             'Product': None, 'Price_SAR': '0.00', 'Company': 'Company not found',
             'Unit of measurement': 'units', 'Total quantity': 0, 'Validation_Status': 'Not Found'
@@ -49,12 +49,27 @@ class AmazonScraper:
         details['Product'] = self._safe_get_text(soup.find('span', id='productTitle'))
         brand_row = soup.find('tr', class_='po-brand')
         details['Company'] = self._safe_get_text(brand_row.find('span', class_='po-break-word')) if brand_row else details['Company']
-        price_whole = self._safe_get_text(soup.find('span', class_='a-price-whole'))
-        price_fraction = self._safe_get_text(soup.find('span', class_='a-price-fraction'))
+        price_whole = None
+        price_fraction = None
+        
+        # Primero buscar la caja principal de precio para no agarrar productos del carrusel
+        core_price_div = soup.find('div', id='corePriceDisplay_desktop_feature_div') or \
+                         soup.find('div', id='corePrice_feature_div') or \
+                         soup.find('div', id='centerCol')
+
+        if core_price_div:
+            price_whole_elem = core_price_div.find('span', class_='a-price-whole')
+            if price_whole_elem:
+                price_whole = self._safe_get_text(price_whole_elem)
+                pf_elem = core_price_div.find('span', class_='a-price-fraction')
+                price_fraction = self._safe_get_text(pf_elem) if pf_elem else None
         
         if price_whole:
             price_str = price_whole.replace(',', '').rstrip('.')
             details['Price_SAR'] = f"{price_str}.{price_fraction}" if price_fraction else price_str
+        elif fallback_price:
+            self._log(f"      [Extractor] Using fallback price from search results: ${fallback_price}")
+            details['Price_SAR'] = fallback_price
 
         raw_title = details.get('Product')
         if not raw_title:
@@ -172,19 +187,21 @@ class AmazonScraper:
             
         return details
     
-    def scrape(self, keyword, search_mode):
-        self._log(f"   [Amazon Scraper] Searching: '{keyword}' (Mode: {search_mode})")
+    def scrape(self, keyword, search_mode, max_price=None):
+        self._log(f"   [Amazon Scraper] Searching: '{keyword}' (Mode: {search_mode}, Max price: {max_price})")
         found_products = []
         products_to_find = 60
         max_pages = 7
         search_url = f"{self.base_url}/s?k={keyword.replace(' ', '+')}"
+        if max_price is not None:
+            search_url += f"&high-price={max_price}"
 
         service = ChromeService(executable_path=self.driver_path)
         options = webdriver.ChromeOptions()
         options.add_experimental_option('excludeSwitches', ['enable-automation'])
         options.add_experimental_option('useAutomationExtension', False)
         options.add_argument('--disable-notifications')
-        options.add_argument('--headless')
+        # options.add_argument('--headless')
         options.add_argument('--disable-gpu')
         options.add_argument('--disable-webgl')
         options.add_argument('--disable-3d-apis')
@@ -248,7 +265,28 @@ class AmazonScraper:
                     
                     product_soup = BeautifulSoup(driver.page_source, 'html.parser')
                     
-                    product_details = self._extract_details_from_product_page(product_soup, search_mode, keyword)
+                    # Extraer precio de los resultados de búsqueda como respaldo
+                    price_from_search = None
+                    # Intentar buscar el span <span class="a-price">
+                    price_elem = container.find('span', class_='a-price')
+                    if price_elem:
+                        offscreen = price_elem.find('span', class_='a-offscreen')
+                        if offscreen:
+                            price_from_search = offscreen.get_text(strip=True).replace('$', '').replace(',', '')
+                    
+                    # Si no, buscar texto que contenga $ en a-color-base, como mencionó el usuario
+                    if not price_from_search:
+                        color_bases = container.find_all('span', class_='a-color-base')
+                        import re
+                        for cb in color_bases:
+                            text = cb.get_text(strip=True)
+                            if '$' in text:
+                                m = re.search(r'\$?([\d,]+\.\d{2}|[\d,]+)', text)
+                                if m:
+                                    price_from_search = m.group(1).replace(',', '')
+                                    break
+                                    
+                    product_details = self._extract_details_from_product_page(product_soup, search_mode, keyword, fallback_price=price_from_search)
                     product_details['URL'] = product_url
                     product_title = product_details.get('Product')
 
