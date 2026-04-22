@@ -61,7 +61,7 @@ if [ "$STAGE" == "1" ]; then
 
     IS_FULL_RUN="false"
     NOW_TS=$(date -u +%s)
-    THREE_MONTHS_AGO_TS=$(date -u -d '3 months ago' +%s)
+    THREE_MONTHS_AGO_TS=$(date -u -d '1 month ago' +%s)
 
     log_message "========================================"
     log_message "Iniciando Pipeline Wayakit (ETAPA 1)"
